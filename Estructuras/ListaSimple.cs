@@ -1,0 +1,2 @@
+//palma
+//propiedades del jugador

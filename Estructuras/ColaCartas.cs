@@ -1,0 +1,2 @@
+//palma
+//cartas de evento
