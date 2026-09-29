@@ -17,7 +17,22 @@ namespace Monopoly.Estructuras
             cantidad = 0;
         }
 
-        public void Agregar(T dato) { } //inserta un elemento al final de la lista
+        public void Agregar(T dato) //inserta un elemento al final de la lista
+        {
+            NodoDoble<T> nuevo = new NodoDoble<T>(dato); //nuevo nodo con el dato recibido
+            if (cola == null)
+            {
+                cabeza = nuevo; //el nodo nuevo es el primero
+                cola = nuevo; //y tambien el ultimo
+            }
+            else
+            {
+                nuevo.Anterior = cola; //el nuevo mira hacia atras a la cola actual
+                cola.Siguiente = nuevo; //la cola actual mira hacia adelante al nuevo
+                cola = nuevo; //el nuevo pasa a ser la cola
+            }
+            cantidad++; //un elemento mas en la lista
+        }
 
         public NodoDoble<T>? Primero() { return cabeza; } //nodo inicial, para recorrer del mas antiguo al mas reciente
 

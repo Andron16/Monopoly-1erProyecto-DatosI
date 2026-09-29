@@ -17,14 +17,14 @@ namespace Monopoly.Dominio
         public int LimiteTurnos { get; set; } //tope configurable para terminar la partida
         public bool Terminado { get; private set; } //true cuando ya hay un ganador
 
-        public Juego(int limiteTurnos) //arma el estado inicial vacio de la partida
+        public Juego(int limiteTurnos, bool usarHardware = false, string puertoSerial = "COM9") //arma el estado inicial; el dado usa la Pico si se pide
         {
             Tablero = new Tablero();
             Turnos = new ColaCircular<Jugador>();
             Mazo = new ColaCartas<CartaEvento>();
             Historial = new ListaDoble<Transaccion>();
             Banco = new Banco(Historial);
-            Dado = new Dado();
+            Dado = new Dado(usarHardware, puertoSerial);
             NumeroTurno = 1;
             LimiteTurnos = limiteTurnos;
             Terminado = false;
