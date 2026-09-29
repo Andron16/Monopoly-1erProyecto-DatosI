@@ -1,4 +1,3 @@
-//andron
 //jugador conectado del lado de servidor
 
 //andron
