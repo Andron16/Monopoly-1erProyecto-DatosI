@@ -5,9 +5,12 @@ namespace Monopoly.Dominio
     public enum TipoEspecial //variantes de casilla especial del tablero
     {
         Salida, //otorga el premio por pasar o caer en ella
-        Carcel, //hace perder turnos al jugador
-        Impuesto, //cobra un monto fijo al banco
-        Descanso //no produce ningun efecto
+        Carcel, //hace perder 1 turno al jugador
+        Regalo, //Regala dinero a un jugador aleatorio
+        Dinero, //Regala una cantidad de dinero al jugador
+        Loteria, //Regala 7000 de dinero al usuario
+        Provincia
+
     }
 
     public class CasillaEspecial : Casilla //casilla sin dueño con un efecto fijo

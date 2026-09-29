@@ -9,7 +9,7 @@ namespace Monopoly.Dominio
     {
         private const int EsperaMaxima = 15000; //milisegundos que se espera el boton antes de pasar a software
 
-        private DadosFisicos? dadosFisicos; //conexion con la Pico; null en modo software
+        private ModuloFisico? modulo; //Pico con dados y lector RFID; null en modo software
         private Random generador; //fuente de aleatoriedad del modo software
         private int valor1; //resultado del primer dado
         private int valor2; //resultado del segundo dado
@@ -19,7 +19,7 @@ namespace Monopoly.Dominio
             generador = new Random();
             valor1 = 0;
             valor2 = 0;
-            dadosFisicos = null;
+            modulo = null;
 
             if (usarHardware) //solo se toca el puerto si se pidio el modo fisico
             {
@@ -29,10 +29,10 @@ namespace Monopoly.Dominio
 
         public void Lanzar() //obtiene los dos valores del boton fisico o, si no hay, por software
         {
-            if (dadosFisicos != null && dadosFisicos.EstaConectado()) //modo fisico activo
+            if (modulo != null && modulo.EstaConectado()) //modo fisico activo
             {
                 Console.WriteLine("[Dado] Esperando que se presione el boton...");
-                if (dadosFisicos.EsperarLanzamiento(EsperaMaxima, out valor1, out valor2)) //el jugador presiono a tiempo
+                if (modulo.Dados.EsperarLanzamiento(EsperaMaxima, out valor1, out valor2)) //el jugador presiono a tiempo
                 {
                     return;
                 }
@@ -49,7 +49,9 @@ namespace Monopoly.Dominio
 
         public int ObtenerTotal() { return valor1 + valor2; } //suma de ambos dados
 
-        public bool EsModoFisico() { return dadosFisicos != null && dadosFisicos.EstaConectado(); } //true si la Pico esta respondiendo
+        public bool EsModoFisico() { return modulo != null && modulo.EstaConectado(); } //true si la Pico esta respondiendo
+
+        public ModuloFisico? ObtenerModulo() { return modulo; } //permite al servidor usar el lector RFID por el mismo puerto; null sin hardware
 
         public void CambiarPuerto(string nuevoPuerto) //cierra la conexion actual e intenta en otro puerto
         {
@@ -59,24 +61,20 @@ namespace Monopoly.Dominio
 
         public void Desconectar() //libera el puerto serial y vuelve a modo software
         {
-            if (dadosFisicos != null)
+            if (modulo != null)
             {
-                dadosFisicos.Desconectar();
-                dadosFisicos = null;
+                modulo.Desconectar();
+                modulo = null;
             }
         }
 
-        private void ConectarHardware(string puerto) //abre el puerto y arranca la escucha; si falla queda en software
+        private void ConectarHardware(string puerto) //abre el puerto; si la Pico no responde queda en software
         {
-            dadosFisicos = new DadosFisicos(puerto);
-            if (dadosFisicos.Conectar()) //la Pico respondio al handshake
-            {
-                dadosFisicos.IniciarEscucha();
-            }
-            else
+            modulo = new ModuloFisico(puerto);
+            if (!modulo.Conectar()) //la Pico no respondio al handshake
             {
                 Console.WriteLine("[Dado] Sin hardware; se usa modo software.");
-                dadosFisicos = null;
+                modulo = null;
             }
         }
     }
