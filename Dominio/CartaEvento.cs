@@ -27,6 +27,41 @@ namespace Monopoly.Dominio
             Valor = valor;
         }
 
-        public void Aplicar(Jugador jugador, Juego juego) { } //ejecuta el efecto sobre el jugador indicado
+        public void Aplicar(Jugador jugador, Juego juego) //ejecuta el efecto sobre el jugador indicado
+        {
+            switch (Efecto) //cada tipo de carta hace algo distinto
+            {
+                case TipoEfecto.RecibirDinero: //el banco le paga al jugador
+                    juego.Banco.Pagar(jugador, Valor, juego.NumeroTurno, TipoTransaccion.GananciaPorEvento, Descripcion);
+                    break;
+
+                case TipoEfecto.PagarDinero: //el jugador le paga al banco
+                    juego.Banco.Cobrar(jugador, Valor, juego.NumeroTurno, TipoTransaccion.PerdidaPorEvento, Descripcion);
+                    break;
+
+                case TipoEfecto.Avanzar: //mueve la ficha adelante Valor pasos
+                    if (jugador.Posicion != null) //solo si la ficha ya esta en el tablero
+                    {
+                        jugador.Posicion = juego.Tablero.Mover(jugador.Posicion, Valor);
+                    }
+                    break;
+
+                case TipoEfecto.Retroceder: //retroceder k equivale a avanzar (total - k) en un tablero circular
+                    if (jugador.Posicion != null)
+                    {
+                        int pasosAtras = juego.Tablero.Contar() - Valor; //la vuelta larga cae en la misma casilla
+                        jugador.Posicion = juego.Tablero.Mover(jugador.Posicion, pasosAtras);
+                    }
+                    break;
+
+                case TipoEfecto.PerderTurno: //se salta Valor turnos
+                    jugador.TurnosPerdidos += Valor;
+                    break;
+
+                case TipoEfecto.IrACasilla: //lo envia directo a la casilla numero Valor
+                    jugador.Posicion = juego.Tablero.ObtenerNodo(Valor);
+                    break;
+            }
+        }
     }
 }
