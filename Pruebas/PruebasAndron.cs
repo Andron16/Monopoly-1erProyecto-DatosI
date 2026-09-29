@@ -4,6 +4,7 @@ using System;
 using Monopoly.Estructuras;
 using Monopoly.Dominio;
 using Monopoly.Reportes;
+using Monopoly.Red;
 
 namespace Monopoly.Pruebas
 {
@@ -15,6 +16,7 @@ namespace Monopoly.Pruebas
             ProbarBanco();
             ProbarReporte();
             ProbarBusquedas();
+            ProbarProtocolo();
         }
 
         private static void ProbarListaDoble() //verifica agregado, conteo y recorridos en ambos sentidos
@@ -153,6 +155,25 @@ namespace Monopoly.Pruebas
                 Transaccion t = resultados.Obtener(i);
                 Console.WriteLine("  #" + t.Id + " " + t.Tipo + " | " + t.Origen + " -> " + t.Destino + " | " + t.Monto);
             }
+        }
+        private static void ProbarProtocolo() //verifica que los mensajes se armen y se separen correctamente
+        {
+            Console.WriteLine("=== Protocolo ===");
+
+            string dados = Protocolo.Armar(Comandos.Dados, "2", "3", "4");
+            Console.WriteLine("Armar con campos: " + dados); //se espera DADOS|2|3|4
+
+            string tirar = Protocolo.Armar(Comandos.TirarDados);
+            Console.WriteLine("Armar sin campos: " + tirar); //se espera TIRAR_DADOS
+
+            string[] partes = Protocolo.Separar(dados);
+            Console.WriteLine("Partes: " + partes.Length + " -> " + partes[0] + ", " + partes[1] + ", " + partes[2] + ", " + partes[3]); //se espera 4 -> DADOS, 2, 3, 4
+
+            Console.WriteLine("Comando: " + Protocolo.Comando(dados)); //se espera DADOS
+
+            string conectar = Protocolo.Armar(Comandos.Conectar, "Ana|Beto");
+            Console.WriteLine("Campo con separador: " + conectar); //se espera CONECTAR|Ana/Beto
+            Console.WriteLine("Partes: " + Protocolo.Separar(conectar).Length); //se espera 2
         }
     }
 }
