@@ -38,6 +38,28 @@ namespace Monopoly.Dominio
             Descripcion = descripcion;
         }
 
-        public string ATexto() { return ""; } //linea formateada para el reporte TXT
+        public string ATexto() //linea formateada para el reporte TXT, alineada con Encabezado()
+        {
+            return Id.ToString().PadRight(6)
+                + Turno.ToString().PadRight(7)
+                + FechaHora.ToString("HH:mm:ss").PadRight(10)
+                + Tipo.ToString().PadRight(20)
+                + Origen.PadRight(12)
+                + Destino.PadRight(12)
+                + Monto.ToString().PadLeft(8) + "  "
+                + Descripcion;
+        }
+
+        public static string Encabezado() //titulos de las columnas, con los mismos anchos que ATexto()
+        {
+            return "#".PadRight(6)
+                + "Turno".PadRight(7)
+                + "Hora".PadRight(10)
+                + "Tipo".PadRight(20)
+                + "Origen".PadRight(12)
+                + "Destino".PadRight(12)
+                + "Monto".PadLeft(8) + "  "
+                + "Descripcion";
+        }
     }
 }

@@ -3,6 +3,7 @@
 using System;
 using Monopoly.Estructuras;
 using Monopoly.Dominio;
+using Monopoly.Reportes;
 
 namespace Monopoly.Pruebas
 {
@@ -12,6 +13,7 @@ namespace Monopoly.Pruebas
         {
             ProbarListaDoble();
             ProbarBanco();
+            ProbarReporte();
         }
 
         private static void ProbarListaDoble() //verifica agregado, conteo y recorridos en ambos sentidos
@@ -87,6 +89,26 @@ namespace Monopoly.Pruebas
                 Console.WriteLine("  #" + t.Id + " " + t.Tipo + " | " + t.Origen + " -> " + t.Destino + " | " + t.Monto);
                 actual = actual.Siguiente;
             }
+        }
+        private static void ProbarReporte() //verifica el formato del reporte y la exportacion a TXT
+        {
+            Console.WriteLine("=== Reporte de transacciones ===");
+
+            ListaDoble<Transaccion> historial = new ListaDoble<Transaccion>();
+            Banco banco = new Banco(historial);
+            Jugador ana = new Jugador(1, "Ana", 1500);
+            Jugador beto = new Jugador(2, "Beto", 1500);
+            Propiedad biblioteca = new Propiedad(5, "Biblioteca", 300, 50);
+
+            banco.PremioPorSalida(ana, 200, 1);
+            banco.ComprarPropiedad(ana, biblioteca, 1);
+            banco.CobrarAlquiler(beto, biblioteca, 2);
+
+            Console.WriteLine(ReporteTransacciones.GenerarTexto(historial)); //se espera #1, #2, #3 en ese orden
+            Console.WriteLine(ReporteTransacciones.GenerarTexto(historial, true)); //se espera #3, #2, #1
+
+            bool exportado = ReporteTransacciones.Exportar(historial, "docs/transacciones/reporte_prueba.txt");
+            Console.WriteLine("Exportado: " + exportado); //se espera True
         }
     }
 }
