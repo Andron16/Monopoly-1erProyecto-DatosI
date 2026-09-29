@@ -1,0 +1,10 @@
+REPORTE DE TRANSACCIONES - MONOPOLY
+Generado: 28/09/2026 21:33:14
+Total de transacciones: 3
+Orden: de la mas antigua a la mas reciente
+
+#     Turno  Hora      Tipo                Origen      Destino        Monto  Descripcion
+----------------------------------------------------------------------------------------------------
+1     1      21:33:14  PremioPorInicio     BANCO       Ana              200  Premio por pasar por la salida
+2     1      21:33:14  CompraPropiedad     Ana         BANCO            300  Compra de Biblioteca
+3     2      21:33:14  PagoAlquiler        Beto        Ana               50  Alquiler de Biblioteca

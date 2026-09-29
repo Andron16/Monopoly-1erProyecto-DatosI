@@ -42,7 +42,7 @@ namespace Monopoly
             Console.WriteLine("===== MODULO DE PRUEBAS =====");
             Monopoly.Pruebas.PruebasAndron.Ejecutar();
             Monopoly.Pruebas.PruebasAbigail.Ejecutar();
-            //Monopoly.Pruebas.PruebasPalma.Ejecutar(); //Palma la descomenta cuando cree su metodo
+            Monopoly.Pruebas.PruebasPalma.Ejecutar();
         }
 
         static void MostrarAyuda() //muestra como se usa el programa
