@@ -43,6 +43,7 @@ namespace Monopoly
             Monopoly.Pruebas.PruebasAndron.Ejecutar();
             Monopoly.Pruebas.PruebasAbigail.Ejecutar();
             Monopoly.Pruebas.PruebasPalma.Ejecutar();
+            Monopoly.Pruebas.PruebasHardware.Ejecutar();
         }
 
         static void MostrarAyuda() //muestra como se usa el programa
