@@ -14,6 +14,7 @@ namespace Monopoly.Pruebas
             ProbarListaDoble();
             ProbarBanco();
             ProbarReporte();
+            ProbarBusquedas();
         }
 
         private static void ProbarListaDoble() //verifica agregado, conteo y recorridos en ambos sentidos
@@ -109,6 +110,49 @@ namespace Monopoly.Pruebas
 
             bool exportado = ReporteTransacciones.Exportar(historial, "docs/transacciones/reporte_prueba.txt");
             Console.WriteLine("Exportado: " + exportado); //se espera True
+        }
+        private static void ProbarBusquedas() //verifica las busquedas del historial por jugador y por tipo
+        {
+            Console.WriteLine("=== Busquedas del historial ===");
+
+            Juego juego = new Juego(50);
+            Jugador ana = new Jugador(1, "Ana", 1500);
+            Jugador beto = new Jugador(2, "Beto", 1500);
+            Propiedad biblioteca = new Propiedad(5, "Biblioteca", 300, 50);
+            Propiedad soda = new Propiedad(6, "Soda", 200, 30);
+
+            juego.Banco.PremioPorSalida(ana, 200, 1); //#1 BANCO -> Ana
+            juego.Banco.ComprarPropiedad(ana, biblioteca, 1); //#2 Ana -> BANCO
+            juego.Banco.ComprarPropiedad(beto, soda, 2); //#3 Beto -> BANCO
+            juego.Banco.CobrarAlquiler(beto, biblioteca, 3); //#4 Beto -> Ana
+
+            Console.WriteLine("De Ana:"); //se espera #1, #2, #4
+            ImprimirResultados(juego.BuscarPorJugador("Ana"));
+
+            Console.WriteLine("De Beto:"); //se espera #3, #4
+            ImprimirResultados(juego.BuscarPorJugador("Beto"));
+
+            Console.WriteLine("De Carlos (no existe):"); //se espera 0 resultados
+            ImprimirResultados(juego.BuscarPorJugador("Carlos"));
+
+            Console.WriteLine("Compras de propiedad:"); //se espera #2, #3
+            ImprimirResultados(juego.BuscarPorTipo(TipoTransaccion.CompraPropiedad));
+
+            Console.WriteLine("Alquileres:"); //se espera #4
+            ImprimirResultados(juego.BuscarPorTipo(TipoTransaccion.PagoAlquiler));
+
+            Console.WriteLine("Perdidas por evento:"); //se espera 0 resultados
+            ImprimirResultados(juego.BuscarPorTipo(TipoTransaccion.PerdidaPorEvento));
+        }
+
+        private static void ImprimirResultados(ListaSimple<Transaccion> resultados) //muestra la cantidad y el detalle de cada resultado
+        {
+            Console.WriteLine("  Resultados: " + resultados.Contar());
+            for (int i = 0; i < resultados.Contar(); i++) //recorre los resultados por indice
+            {
+                Transaccion t = resultados.Obtener(i);
+                Console.WriteLine("  #" + t.Id + " " + t.Tipo + " | " + t.Origen + " -> " + t.Destino + " | " + t.Monto);
+            }
         }
     }
 }
