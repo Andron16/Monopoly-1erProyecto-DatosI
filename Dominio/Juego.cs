@@ -44,9 +44,35 @@ namespace Monopoly.Dominio
 
         public void TerminarTurno(int idJugador) { } //avanza la cola al siguiente jugador activo
 
-        public ListaSimple<Transaccion> BuscarPorJugador(string nombre) { return default!; } //transacciones donde el jugador es origen o destino
+        public ListaSimple<Transaccion> BuscarPorJugador(string nombre) //transacciones donde el jugador es origen o destino
+        {
+            ListaSimple<Transaccion> resultados = new ListaSimple<Transaccion>();
+            NodoDoble<Transaccion>? actual = Historial.Primero(); //de la mas antigua a la mas reciente
+            while (actual != null) //revisa cada transaccion del historial
+            {
+                if (actual.Dato.Origen == nombre || actual.Dato.Destino == nombre) //el jugador pago o cobro
+                {
+                    resultados.Agregar(actual.Dato);
+                }
+                actual = actual.Siguiente;
+            }
+            return resultados;
+        }
 
-        public ListaSimple<Transaccion> BuscarPorTipo(TipoTransaccion tipo) { return default!; } //transacciones de una categoria determinada
+        public ListaSimple<Transaccion> BuscarPorTipo(TipoTransaccion tipo) //transacciones de una categoria determinada
+        {
+            ListaSimple<Transaccion> resultados = new ListaSimple<Transaccion>();
+            NodoDoble<Transaccion>? actual = Historial.Primero(); //de la mas antigua a la mas reciente
+            while (actual != null) //revisa cada transaccion del historial
+            {
+                if (actual.Dato.Tipo == tipo) //coincide la categoria
+                {
+                    resultados.Agregar(actual.Dato);
+                }
+                actual = actual.Siguiente;
+            }
+            return resultados;
+        }
 
         public Jugador? Ganador() { return null; } //ultimo activo o el de mayor patrimonio al agotar los turnos
 
