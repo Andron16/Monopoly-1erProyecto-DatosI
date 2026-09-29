@@ -1,71 +1,49 @@
-//para realizar pruebas
+//abigail
 
 using System;
-using Hardware;
 using Monopoly.Dominio;
 
-public class PruebasAbigail
+namespace Monopoly.Pruebas
 {
-    public static void PruebasDados(string[] args)
+    public class PruebasAbigail //banco de pruebas de Abigail
     {
-        Console.WriteLine("===== PRUEBAS DE DADOS =====\n");
-        
-        // Prueba 1: Modo software
-        Console.WriteLine("--- Prueba 1: Dados en modo SOFTWARE ---");
-        PruebaModoSoftware();
-        
-        // Prueba 2: Modo hardware (si está conectado)
-        Console.WriteLine("\n--- Prueba 2: Dados en modo HARDWARE ---");
-        PruebaModoHardware();
-        
-        Console.WriteLine("\n===== FIN DE PRUEBAS =====");
-    }
-    
-    private static void PruebaModoSoftware()
-    {
-        //crea un dado en modo software
-        Dado dado = new Dado(usarHardware: false);
-        
-        Console.WriteLine($"¿Es modo físico? {dado.EsModoFisico()} (debe ser false)");
-        
-        // lanza 5 veces
-        for (int i = 1; i <= 2; i++)
+        private const string Puerto = "COM9"; //cambiar segun el COM que Windows le asigne a la Pico
+
+        public static void Ejecutar() //corre todas las pruebas de esta integrante
         {
+            Console.WriteLine("=== Dado ===");
+            PruebaModoSoftware();
+            PruebaModoHardware();
+        }
+
+        private static void PruebaModoSoftware() //cinco lanzamientos sin hardware
+        {
+            Console.WriteLine("--- Modo software ---");
+            Dado dado = new Dado(usarHardware: false);
+            Console.WriteLine("Es modo fisico: " + dado.EsModoFisico()); //se espera False
+
+            for (int i = 1; i <= 5; i++) //cinco lanzamientos seguidos
+            {
+                dado.Lanzar();
+                Console.WriteLine("  Lanzamiento " + i + ": " + dado.Obtener1() + " + " + dado.Obtener2() + " = " + dado.ObtenerTotal()); //cada dado entre 1 y 6, total entre 2 y 12
+            }
+        }
+
+        private static void PruebaModoHardware() //un lanzamiento real con el boton de la Pico
+        {
+            Console.WriteLine("--- Modo hardware ---");
+            Dado dado = new Dado(usarHardware: true, puertoSerial: Puerto);
+
+            if (!dado.EsModoFisico()) //sin Pico conectada no hay nada que probar
+            {
+                Console.WriteLine("  Hardware no disponible, se omite la prueba.");
+                return;
+            }
+
+            Console.WriteLine("  Presiona el boton de la Pico (hay 15 segundos)...");
             dado.Lanzar();
-            int d1 = dado.Obtener1();
-            int d2 = dado.Obtener2();
-            int total = dado.ObtenerTotal();
-            Console.WriteLine($"  Lanzamiento {i}: {d1} + {d2} = {total}");
+            Console.WriteLine("  Resultado: " + dado.Obtener1() + " + " + dado.Obtener2() + " = " + dado.ObtenerTotal()); //debe coincidir con los displays
+            dado.Desconectar();
         }
-        
-        Console.WriteLine("✓ Prueba software completada");
     }
-    
-    private static void PruebaModoHardware()
-    {
-        //intenta conectar al hardware
-        Dado dado = new Dado(usarHardware: true, puertoSerial: "COM9");
-        
-        if (dado.EsModoFisico())
-        {
-            Console.WriteLine("✓ Conectado al hardware físico");
-            Console.WriteLine("  Presiona el botón en el display para lanzar...");
-            
-            System.Threading.Thread.Sleep(2000);
-            dado.Lanzar();
-            
-            int d1 = dado.Obtener1();
-            int d2 = dado.Obtener2();
-            int total = dado.ObtenerTotal();
-            Console.WriteLine($"  Resultado: {d1} + {d2} = {total}");
-        }
-        else
-        {
-            Console.WriteLine("⚠ Hardware no disponible.");
-        }
-        
-        dado.Desconectar();
-        Console.WriteLine("✓ Desconectado");
-    }
-    
 }

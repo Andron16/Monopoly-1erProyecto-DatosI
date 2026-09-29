@@ -1,236 +1,231 @@
-// Hardware/Dados.cs - Control de dados físicos vía Raspberry Pi Pico W
-// Proyecto: Monopoly Distribuido - CE1103 ITCR
+//Andron
 
 using System;
 using System.IO.Ports;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace Hardware
+namespace Monopoly.Hardware
 {
-    public class DadosFisicos
+    public class DadosFisicos //driver del lado PC: habla con la Pico W por el puerto serial del USB
     {
-        private SerialPort puerto;
-        private string puerto_nombre;
-        private int dado1;
-        private int dado2;
-        private int total;
-        private bool conectado;
-        private object bloqueo_datos; //para thread-safety
+        private SerialPort puerto; //puerto serial virtual que expone la Pico por USB
+        private string nombrePuerto; //nombre del COM, usado en los mensajes
+        private int dado1; //ultimo valor recibido del primer dado
+        private int dado2; //ultimo valor recibido del segundo dado
+        private int total; //ultima suma recibida
+        private bool lanzamientoNuevo; //true si llego un resultado que todavia nadie consumio
+        private bool conectado; //true mientras el puerto este abierto y el handshake haya pasado
+        private object bloqueoDatos; //candado para compartir los valores con el hilo de lectura
 
-        public DadosFisicos(string nombrePuerto = "COM9")
+        public DadosFisicos(string nombrePuerto = "COM9") //prepara el puerto sin abrirlo todavia
         {
-            puerto_nombre = nombrePuerto;
+            this.nombrePuerto = nombrePuerto;
             dado1 = 0;
             dado2 = 0;
             total = 0;
+            lanzamientoNuevo = false;
             conectado = false;
-            bloqueo_datos = new object();
+            bloqueoDatos = new object();
 
-            // inicializar puerto serial
-            puerto = new SerialPort(nombrePuerto, 9600, Parity.None, 8, StopBits.One)
-            {
-                ReadTimeout = 2000,
-                WriteTimeout = 2000
-            };
+            puerto = new SerialPort(nombrePuerto, 9600, Parity.None, 8, StopBits.One);
+            puerto.ReadTimeout = 2000;
+            puerto.WriteTimeout = 2000;
+            puerto.DtrEnable = true; //sin DTR activo, MicroPython descarta lo que la Pico envia con print()
         }
 
-        public bool Conectar()
+        public bool Conectar() //abre el puerto y confirma con PING / DADOS:LISTO que main.py esta corriendo
         {
-            //intenta abrir conexión con la Pico W
             try
             {
-                if (puerto.IsOpen)
+                if (puerto.IsOpen) //si quedo abierto de antes, se reinicia limpio
+                {
                     puerto.Close();
+                }
 
                 puerto.Open();
                 conectado = true;
-
-                // limpia cualquier dato viejo que haya quedado en el buffer
-                puerto.DiscardInBuffer();
+                puerto.DiscardInBuffer(); //descarta datos viejos que hayan quedado en el buffer
                 Thread.Sleep(500);
 
-                // envia una pregunta y espera la respuesta (handshake)
                 puerto.WriteLine("PING");
 
-                string respuesta = null;
+                string? respuesta = null;
                 int intentos = 0;
-                while (respuesta == null && intentos < 5)
+                while (respuesta == null && intentos < 5) //hasta 5 intentos esperando la respuesta de la Pico
                 {
                     Thread.Sleep(300);
                     respuesta = LeerMensaje();
                     intentos++;
                 }
 
-                if (respuesta != null && respuesta.Contains("LISTO"))
+                if (respuesta != null && respuesta.Contains("LISTO")) //la Pico respondio el handshake
                 {
-                    Console.WriteLine("[Dados] Conexión exitosa con Raspberry Pi Pico W");
+                    Console.WriteLine("[Dados] Conexion exitosa con la Pico W en " + nombrePuerto);
                     return true;
                 }
 
-                Console.WriteLine("[Dados] ERROR: Pico W no respondió correctamente");
+                Console.WriteLine("[Dados] ERROR: la Pico W no respondio en " + nombrePuerto);
                 puerto.Close();
                 conectado = false;
                 return false;
             }
-            catch (Exception ex)
+            catch (Exception ex) //puerto inexistente, ocupado por Thonny, etc.
             {
-                Console.WriteLine($"[Dados] ERROR al conectar: {ex.Message}");
+                Console.WriteLine("[Dados] ERROR al conectar en " + nombrePuerto + ": " + ex.Message);
                 conectado = false;
                 return false;
             }
         }
 
-        public void Desconectar()
+        public void Desconectar() //cierra el puerto y detiene el hilo de lectura
         {
-            //cierra la conexión serial
             try
             {
-                if (puerto != null && puerto.IsOpen)
+                conectado = false; //el hilo de lectura revisa esta bandera y termina
+                if (puerto.IsOpen)
                 {
                     puerto.Close();
-                    conectado = false;
                     Console.WriteLine("[Dados] Desconectado");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Dados] ERROR al desconectar: {ex.Message}");
+                Console.WriteLine("[Dados] ERROR al desconectar: " + ex.Message);
             }
         }
 
-        public void IniciarEscucha()
+        public void IniciarEscucha() //lanza un hilo en segundo plano que procesa todo lo que envie la Pico
         {
-            //inicia un hilo para escuchar mensajes del Pico W
-            Thread hilo_lectura = new Thread(() =>
+            Thread hiloLectura = new Thread(() =>
             {
-                while (conectado)
+                while (conectado) //corre hasta que se llame a Desconectar
                 {
-                    string mensaje = LeerMensaje();
+                    string? mensaje = LeerMensaje();
                     if (mensaje != null)
                     {
                         ProcesarMensaje(mensaje);
                     }
                     Thread.Sleep(100);
                 }
-            })
-            {
-                IsBackground = true
-            };
-
-            hilo_lectura.Start();
+            });
+            hiloLectura.IsBackground = true; //no impide que el programa se cierre
+            hiloLectura.Start();
         }
 
-        private string LeerMensaje()
+        public bool EsperarLanzamiento(int milisegundos, out int valor1, out int valor2) //descarta lanzamientos previos y espera uno nuevo hasta el tiempo limite
         {
-            //lee una línea del puerto serial
+            lock (bloqueoDatos)
+            {
+                lanzamientoNuevo = false; //lo presionado antes de pedir el lanzamiento no cuenta
+            }
+
+            int esperado = 0;
+            while (esperado < milisegundos) //revisa cada 100 ms si llego un resultado nuevo
+            {
+                lock (bloqueoDatos)
+                {
+                    if (lanzamientoNuevo) //llego un lanzamiento despues de la solicitud
+                    {
+                        lanzamientoNuevo = false;
+                        valor1 = dado1;
+                        valor2 = dado2;
+                        return true;
+                    }
+                }
+                Thread.Sleep(100);
+                esperado += 100;
+            }
+
+            valor1 = 0;
+            valor2 = 0;
+            return false;
+        }
+
+        private string? LeerMensaje() //lee una linea del puerto; null si no hay nada
+        {
             try
             {
-                if (puerto != null && puerto.IsOpen && puerto.BytesToRead > 0)
+                if (puerto.IsOpen && puerto.BytesToRead > 0) //solo lee si hay datos esperando
                 {
                     return puerto.ReadLine().Trim();
                 }
             }
             catch (TimeoutException)
             {
-                // timeout normal, no es error
+                //timeout normal de lectura, no es un error
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Dados] ERROR en lectura: {ex.Message}");
+                Console.WriteLine("[Dados] ERROR en lectura: " + ex.Message);
             }
 
             return null;
         }
 
-        private void ProcesarMensaje(string mensaje)
+        private void ProcesarMensaje(string mensaje) //interpreta los mensajes con formato PREFIJO:datos
         {
-            //procesa mensajes recibidos del Pico W
             try
             {
-                if (mensaje.StartsWith("DADOS:"))
+                if (mensaje.StartsWith("DADOS:")) //formato DADOS:dado1,dado2,total
                 {
-                    // Formato: DADOS:1,2,3 (dado1, dado2, total)
-                    string datos = mensaje.Substring(6);
-                    string[] partes = datos.Split(',');
+                    string[] partes = mensaje.Substring(6).Split(',');
 
-                    if (partes.Length == 3)
+                    if (partes.Length == 3) //DADOS:LISTO tiene una sola parte y se ignora aqui
                     {
-                        lock (bloqueo_datos)
+                        lock (bloqueoDatos)
                         {
                             dado1 = int.Parse(partes[0]);
                             dado2 = int.Parse(partes[1]);
                             total = int.Parse(partes[2]);
+                            lanzamientoNuevo = true;
                         }
-
-                        Console.WriteLine($"[Dados] Lanzados: {dado1} + {dado2} = {total}");
+                        Console.WriteLine("[Dados] Lanzados: " + dado1 + " + " + dado2 + " = " + total);
                     }
                 }
                 else if (mensaje.StartsWith("DISPLAYS:"))
                 {
-                    Console.WriteLine($"[Dados] {mensaje}");
+                    Console.WriteLine("[Dados] " + mensaje);
                 }
                 else if (mensaje.StartsWith("ERROR:"))
                 {
-                    Console.WriteLine($"[Dados] ERROR en Pico W: {mensaje}");
+                    Console.WriteLine("[Dados] ERROR en la Pico W: " + mensaje);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) //mensaje mal formado
             {
-                Console.WriteLine($"[Dados] ERROR al procesar mensaje '{mensaje}': {ex.Message}");
+                Console.WriteLine("[Dados] ERROR al procesar '" + mensaje + "': " + ex.Message);
             }
         }
 
-        public void EnviarComando(string comando)
+        public void EnviarComando(string comando) //envia una linea de texto a la Pico
         {
-            //envía un comando al Pico W
             try
             {
-                if (puerto != null && puerto.IsOpen)
+                if (puerto.IsOpen)
                 {
                     puerto.WriteLine(comando);
-                    Console.WriteLine($"[Dados] Comando enviado: {comando}");
                 }
                 else
                 {
-                    Console.WriteLine("[Dados] ERROR: Puerto no está abierto");
+                    Console.WriteLine("[Dados] ERROR: el puerto no esta abierto");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Dados] ERROR al enviar comando: {ex.Message}");
+                Console.WriteLine("[Dados] ERROR al enviar comando: " + ex.Message);
             }
         }
 
-        public void MostrarEnDisplays(int valor1, int valor2)
-        {
-            //ordena al Pico W que muestre dos valores en los displays
-            EnviarComando($"MOSTRAR:{valor1},{valor2}");
-        }
+        public void MostrarEnDisplays(int valor1, int valor2) { EnviarComando("MOSTRAR:" + valor1 + "," + valor2); } //pide a la Pico mostrar dos valores
 
-        public void ApagarDisplays()
-        {
-            //apaga todos los displays
-            EnviarComando("APAGAR");
-        }
+        public void ApagarDisplays() { EnviarComando("APAGAR"); } //apaga ambos displays
 
-        public (int, int, int) ObtenerUltimoLanzamiento()
-        {
-            //devuelve (dado1, dado2, total) del último lanzamiento
-            lock (bloqueo_datos)
-            {
-                return (dado1, dado2, total);
-            }
-        }
+        public bool EstaConectado() { return conectado && puerto.IsOpen; } //true si el puerto sigue abierto y el handshake paso
 
-        public bool EstaConectado()
-        {
-            //indica si está conectado al Pico W
-            return conectado && puerto != null && puerto.IsOpen;
-        }
+        public int ObtenerDado1() { lock (bloqueoDatos) { return dado1; } } //ultimo valor del primer dado
 
-        public int ObtenerDado1() => dado1; //getter para dado 1
-        public int ObtenerDado2() => dado2; //getter para dado 2
-        public int ObtenerTotal() => total; //getter para el total
+        public int ObtenerDado2() { lock (bloqueoDatos) { return dado2; } } //ultimo valor del segundo dado
+
+        public int ObtenerTotal() { lock (bloqueoDatos) { return total; } } //ultima suma recibida
     }
 }
