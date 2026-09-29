@@ -12,6 +12,7 @@ namespace Monopoly.Pruebas
         {
             ProbarListaSimple();
             ProbarJugador();
+            ProbarPropiedad();
         }
 
         private static void ProbarListaSimple() //verifica agregado, busqueda, obtencion y eliminacion
@@ -73,6 +74,23 @@ namespace Monopoly.Pruebas
 
             //patrimonio = saldo 22000 + precios 12000 + 3000
             Console.WriteLine("Patrimonio: " + jugador.CalcularPatrimonio()); //se espera 37000
+        }
+
+        private static void ProbarPropiedad() //verifica disponibilidad y pertenencia de una propiedad
+        {
+            Console.WriteLine("=== Propiedad ===");
+
+            Propiedad prop = new Propiedad(10, "La Cali", 12000, 6000);
+            Console.WriteLine("Disponible al inicio: " + prop.EstaDisponible()); //se espera True
+
+            Jugador dueno = new Jugador(1, "Palma", 25000);
+            Jugador otro = new Jugador(2, "Andron", 25000);
+
+            prop.Propietario = dueno; //se le asigna un dueño
+
+            Console.WriteLine("Disponible con dueño: " + prop.EstaDisponible()); //se espera False
+            Console.WriteLine("EsDe dueño: " + prop.EsDe(dueno)); //se espera True
+            Console.WriteLine("EsDe otro: " + prop.EsDe(otro));   //se espera False
         }
     }
 }

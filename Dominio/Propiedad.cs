@@ -17,8 +17,23 @@ namespace Monopoly.Dominio
 
         public bool EstaDisponible() { return Propietario == null; } //true si todavia nadie la compro
 
-        public bool EsDe(Jugador jugador) { return false; } //true si el jugador es el propietario actual
+        public bool EsDe(Jugador jugador) //true si el jugador es el propietario actual
+        {
+            return Propietario == jugador;
+        }
 
-        public override void AlCaer(Jugador jugador, Juego juego) { } //ofrece compra, cobra alquiler o no hace nada
+        public override void AlCaer(Jugador jugador, Juego juego) //ofrece compra, cobra alquiler o no hace nada
+        {
+            if (EstaDisponible()) //libre: la compra la decide el jugador con su comando; el servidor la ofrece
+            {
+                return; //no hay cambio de estado automatico
+            }
+            if (EsDe(jugador)) //propia: no se cobra nada
+            {
+                return;
+            }
+            //ajena: el visitante le paga alquiler al dueño, siempre a traves del banco
+            juego.Banco.CobrarAlquiler(jugador, this, juego.NumeroTurno);
+        }
     }
 }
