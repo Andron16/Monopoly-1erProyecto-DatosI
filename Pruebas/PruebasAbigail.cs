@@ -1,49 +1,42 @@
 //abigail
 
 using System;
+using System.Windows.Forms;
 using Monopoly.Dominio;
+using Monopoly.Interfaz;
 
 namespace Monopoly.Pruebas
 {
-    public class PruebasAbigail //banco de pruebas de Abigail
+    public class PruebasAbigail //banco de pruebas del tablero y la interfaz de esta integrante
     {
-        private const string Puerto = "COM9"; //cambiar segun el COM que Windows le asigne a la Pico
-
         public static void Ejecutar() //corre todas las pruebas de esta integrante
         {
-            Console.WriteLine("=== Dado ===");
-            PruebaModoSoftware();
-            PruebaModoHardware();
+            ProbarTablero();
         }
 
-        private static void PruebaModoSoftware() //cinco lanzamientos sin hardware
+        private static void ProbarTablero() //abre la ventana del tablero con jugadores fijos en casillas distintas
         {
-            Console.WriteLine("--- Modo software ---");
-            Dado dado = new Dado(usarHardware: false);
-            Console.WriteLine("Es modo fisico: " + dado.EsModoFisico()); //se espera False
+            Console.WriteLine("=== VistaTablero ===");
 
-            for (int i = 1; i <= 5; i++) //cinco lanzamientos seguidos
-            {
-                dado.Lanzar();
-                Console.WriteLine("  Lanzamiento " + i + ": " + dado.Obtener1() + " + " + dado.Obtener2() + " = " + dado.ObtenerTotal()); //cada dado entre 1 y 6, total entre 2 y 12
-            }
-        }
+            Application.EnableVisualStyles(); //necesario para que Windows Forms se vea bien
+            Application.SetCompatibleTextRenderingDefault(false);
 
-        private static void PruebaModoHardware() //un lanzamiento real con el boton de la Pico
-        {
-            Console.WriteLine("--- Modo hardware ---");
-            Dado dado = new Dado(usarHardware: true, puertoSerial: Puerto);
+            Tablero tablero = new Tablero();
+            tablero.Construir(); //arma las 32 casillas reales
 
-            if (!dado.EsModoFisico()) //sin Pico conectada no hay nada que probar
-            {
-                Console.WriteLine("  Hardware no disponible, se omite la prueba.");
-                return;
-            }
+            Jugador[] jugadoresPrueba = new Jugador[4];
+            jugadoresPrueba[0] = new Jugador(1, "Rojo", 1500);
+            jugadoresPrueba[1] = new Jugador(2, "Azul", 1500);
+            jugadoresPrueba[2] = new Jugador(3, "Verde", 1500);
+            jugadoresPrueba[3] = new Jugador(4, "Naranja", 1500);
 
-            Console.WriteLine("  Presiona el boton de la Pico (hay 15 segundos)...");
-            dado.Lanzar();
-            Console.WriteLine("  Resultado: " + dado.Obtener1() + " + " + dado.Obtener2() + " = " + dado.ObtenerTotal()); //debe coincidir con los displays
-            dado.Desconectar();
+            //los ubico en casillas distintas para ver que cada ficha cae en su lugar
+            jugadoresPrueba[0].Posicion = tablero.ObtenerNodo(0);  //Salida
+            jugadoresPrueba[1].Posicion = tablero.ObtenerNodo(8);  //Carcel
+            jugadoresPrueba[2].Posicion = tablero.ObtenerNodo(16); //lado sur
+            jugadoresPrueba[3].Posicion = tablero.ObtenerNodo(24); //lado oeste
+
+            Application.Run(new VistaTablero(jugadoresPrueba)); //bloquea hasta que se cierre la ventana
         }
     }
 }

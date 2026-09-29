@@ -42,18 +42,18 @@ namespace Monopoly.Dominio
             AgregarCasilla(new Propiedad(19, "Desampa", 160, 35));
             AgregarCasilla(new Propiedad(20, "Mercado Central", 180, 40));
             AgregarCasilla(new CasillaEvento(21, "Evento"));
-            AgregarCasilla(new Propiedad(21, "Mall", 180, 40));
-            AgregarCasilla(new Propiedad(22, "Cali", 200, 45));
+            AgregarCasilla(new Propiedad(22, "Mall", 180, 40));
+            AgregarCasilla(new Propiedad(23, "Cali", 200, 45));
 
             // ---- LADO Chepe ----
-            AgregarCasilla(new CasillaEspecial(22, "Chepe", TipoEspecial.Provincia, 0));
-            AgregarCasilla(new Propiedad(24, "Estadio", 200, 45));
-            AgregarCasilla(new Propiedad(25, "Sabana", 220, 50));
-            AgregarCasilla(new Propiedad(26, "Casa", 220, 50));
-            AgregarCasilla(new Propiedad(27, "Sanatorio", 240, 55));
-            AgregarCasilla(new CasillaEspecial(28, "Regalo", TipoEspecial.Regalo, 100));
-            AgregarCasilla(new CasillaEvento(29, "Evento"));
-            AgregarCasilla(new Propiedad(30, "Cerro", 240, 55));
+            AgregarCasilla(new CasillaEspecial(24, "Chepe", TipoEspecial.Provincia, 0));
+            AgregarCasilla(new Propiedad(25, "Estadio", 200, 45));
+            AgregarCasilla(new Propiedad(26, "Sabana", 220, 50));
+            AgregarCasilla(new Propiedad(27, "Casa", 220, 50));
+            AgregarCasilla(new Propiedad(28, "Sanatorio", 240, 55));
+            AgregarCasilla(new CasillaEspecial(29, "Regalo", TipoEspecial.Regalo, 100));
+            AgregarCasilla(new CasillaEvento(30, "Evento"));
+            AgregarCasilla(new Propiedad(31, "Cerro", 240, 55));
         }
 
         public void AgregarCasilla(Casilla casilla)
