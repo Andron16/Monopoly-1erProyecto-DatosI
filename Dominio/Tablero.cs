@@ -13,7 +13,7 @@ namespace Monopoly.Dominio
             casillas = new ListaCircularDoble<Casilla>();
         }
 
-        public void Construir() //crea y enlaza las 24 casillas de la partida
+        public void Construir() //crea y enlaza las 32 casillas de la partida
         {
             // ---- Lado Cartago ----
             AgregarCasilla(new CasillaEspecial(0, "SalidaCartago", TipoEspecial.Salida, 200)); //Cantidad
@@ -32,7 +32,7 @@ namespace Monopoly.Dominio
             AgregarCasilla(new Propiedad(11, "Isla", 120, 25));
             AgregarCasilla(new CasillaEvento(12, "Evento"));
             AgregarCasilla(new Propiedad(13, "Golfito", 120, 25));
-            AgregarCasilla(new Propiedad(14, "Faro", 140, 30)); ;
+            AgregarCasilla(new Propiedad(14, "Faro", 140, 30)); 
             AgregarCasilla(new Propiedad(15, "Caldera", 140, 30));
 
             // ---- Lado Puntarenas ----
@@ -58,6 +58,7 @@ namespace Monopoly.Dominio
 
         public void AgregarCasilla(Casilla casilla)
         {
+            casilla.Id = casillas.Contar(); //la posicion en el circuito define el numero: 0, 1, 2...
             casillas.Agregar(casilla);
         } //añade una casilla al final del circuito
 

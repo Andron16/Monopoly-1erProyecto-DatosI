@@ -45,6 +45,10 @@ namespace Monopoly
                     Monopoly.Pruebas.PruebasHardware.Ejecutar(); //prueba interactiva: requiere la Pico conectada
                     break;
 
+                case "tablero":
+                    Monopoly.Pruebas.PruebasAbigail.ProbarTableroVisual(); //prueba visual: abre la ventana
+                    break;
+
                 default:
                     MostrarAyuda();
                     break;
@@ -88,6 +92,7 @@ namespace Monopoly
             Console.WriteLine("  dotnet run -- consola [IP] [nombre]   : cliente de texto para probar la red");
             Console.WriteLine("  dotnet run -- pruebas                 : ejecuta las pruebas de cada integrante");
             Console.WriteLine("  dotnet run -- hardware                : prueba interactiva de la Pico (dados + RFID)");
+            Console.WriteLine("  dotnet run -- tablero                 : prueba visual del tablero");
         }
     }
 }
