@@ -27,10 +27,12 @@ namespace Monopoly
                     }
 
                 case "cliente":
-                    Console.WriteLine("Iniciando cliente...");
-                    //ApplicationConfiguration.Initialize();
-                    //System.Windows.Forms.Application.Run(new Monopoly.Interfaz.VistaTablero());
-                    break;
+                    {
+                        string ip = args.Length > 1 ? args[1] : "127.0.0.1"; //IP del servidor
+                        string nombre = args.Length > 2 ? args[2] : "Jugador"; //nombre con que se presenta
+                        ClienteGrafico(ip, nombre);
+                        break;
+                    }
 
                 case "consola":
                     {
@@ -84,6 +86,50 @@ namespace Monopoly
             }
             cliente.Desconectar();
         }
+        static void ClienteGrafico(string ip, string nombre) //ventana del tablero conectada al servidor por medio del ControladorCliente
+        {
+            System.Windows.Forms.Application.EnableVisualStyles();
+            Monopoly.Interfaz.VistaTablero vista = new Monopoly.Interfaz.VistaTablero();
+            Monopoly.Red.ControladorCliente controlador = new Monopoly.Red.ControladorCliente();
+
+            controlador.AlActualizarJugador = vista.ActualizarJugador; //mueve fichas y saldos; ActualizarJugador ya hace Invoke
+            controlador.AlCambiarTurno = texto => Console.WriteLine(">> " + texto); //TEMPORAL: a la terminal hasta que la ventana lo muestre
+            controlador.AlRegistrar = texto => Console.WriteLine(texto); //TEMPORAL: igual
+
+            vista.Shown += (s, e) => //se conecta recien con la ventana visible, asi Invoke ya funciona
+            {
+                if (!controlador.Conectar(ip, PuertoTcp, nombre)) Console.WriteLine("No se pudo conectar a " + ip);
+            };
+
+            vista.FormClosed += (s, e) => //al cerrar la ventana se corta la conexion
+            {
+                Console.WriteLine("[Cliente] Ventana cerrada");
+                controlador.Desconectar();
+            };
+
+            System.Threading.Thread entrada = new System.Threading.Thread(() => LeerComandos(controlador)); //TEMPORAL: comandos por teclado hasta que existan los botones
+            entrada.IsBackground = true;
+            entrada.Start();
+
+            System.Windows.Forms.Application.Run(vista); //bloquea hasta cerrar la ventana
+        }
+
+        static void LeerComandos(Monopoly.Red.ControladorCliente controlador) //TEMPORAL: t, c, n, f, h, e desde la terminal
+        {
+            Console.WriteLine("Comandos: t = tirar, c = comprar, n = no comprar, f = terminar turno, h = transacciones, e = estado");
+            string? linea = Console.ReadLine();
+            while (linea != null) //hasta que se cierre la terminal
+            {
+                string tecla = linea.Trim().ToLower();
+                if (tecla == "t") controlador.TirarDados();
+                else if (tecla == "c") controlador.Comprar();
+                else if (tecla == "n") controlador.NoComprar();
+                else if (tecla == "f") controlador.TerminarTurno();
+                else if (tecla == "h") controlador.PedirTransacciones();
+                else if (tecla == "e") controlador.PedirEstado();
+                linea = Console.ReadLine();
+            }
+        }
 
         static void MostrarAyuda() //muestra como se usa el programa
         {
@@ -91,7 +137,7 @@ namespace Monopoly
             Console.WriteLine();
             Console.WriteLine("Roles disponibles:");
             Console.WriteLine("  dotnet run -- servidor [COMx]         : inicia el servidor (COMx = puerto de la Pico, opcional)");
-            Console.WriteLine("  dotnet run -- cliente                 : inicia el cliente grafico del juego");
+            Console.WriteLine("  dotnet run -- cliente [IP] [nombre]   : ventana del tablero conectada al servidor");
             Console.WriteLine("  dotnet run -- consola [IP] [nombre]   : cliente de texto para probar la red");
             Console.WriteLine("  dotnet run -- pruebas                 : ejecuta las pruebas de cada integrante");
             Console.WriteLine("  dotnet run -- hardware                : prueba interactiva de la Pico (dados + RFID)");
