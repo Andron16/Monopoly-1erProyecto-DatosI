@@ -12,6 +12,7 @@ namespace Monopoly.Interfaz
         private PictureBox lienzo; //donde se dibuja la imagen y las fichas
         private Image fondoTablero; //imagen de fondo, cargada una sola vez
         private Point[] coordenadas; //presentacion: pixel de cada casilla, NO es el tablero real
+        private Image[] imagenesJugador = new Image[4];
 
         //datos de los 4 jugadores, llenados por ActualizarJugador; nunca por objetos Jugador,
         //porque el cliente solo recibe texto del servidor (regla 2.5)
@@ -22,14 +23,21 @@ namespace Monopoly.Interfaz
 
         private Label[] etiquetasJugador = new Label[4]; //nombre y saldo en un panel lateral
 
-        private static readonly Color[] coloresJugador = { Color.Red, Color.Blue, Color.Green, Color.Orange };
+        private Label lblCasillaNombre;
+        private Label lblCasillaPropiedad;
+        private Label lblCasillaCompra;
+        private Label lblCasillaAlquiler;
+        private Button btnComprar;
+        private Button btnPasar;
 
         public VistaTablero() //ya no recibe Jugador[]: ese objeto no existe del lado del cliente
         {
             this.DoubleBuffered = true; //evita parpadeo al redibujar
 
             InicializarCoordenadas();
+            CargarImagenesJugadores();
             InicializarLienzo();
+
         }
 
         private void InicializarCoordenadas() //carga el mapa casilla -> pixel; SOLO es presentacion
@@ -72,44 +80,85 @@ namespace Monopoly.Interfaz
             coordenadas[30] = new Point(80, 1350);
             coordenadas[31] = new Point(80, 1515);
         }
+        private void CargarImagenesJugadores()
+        {
+            imagenesJugador[0] = Image.FromFile("docs/bolaAzul.png");
+            imagenesJugador[1] = Image.FromFile("docs/bolaNaranja.png");
+            imagenesJugador[2] = Image.FromFile("docs/bolaVerde.png");
+            imagenesJugador[3] = Image.FromFile("docs/bolaRosa.png");
+        }
 
-        private void InicializarLienzo() //arma el PictureBox con la imagen de fondo y el panel lateral de jugadores
+        private void InicializarLienzo()
         {
             fondoTablero = Image.FromFile("docs/Tablero.jpeg");
 
             lienzo = new PictureBox();
-            lienzo.Size = new Size(1600, 1600); //tamaño real de la imagen, sin reescalar
-            lienzo.SizeMode = PictureBoxSizeMode.AutoSize; //respeta el tamaño real
+            lienzo.Size = new Size(1600, 1600);
+            lienzo.SizeMode = PictureBoxSizeMode.AutoSize;
             lienzo.Image = fondoTablero;
-            lienzo.Paint += Lienzo_Paint; //aqui se dibujan las fichas, encima de la imagen
+            lienzo.Paint += Lienzo_Paint;
 
             contenedor = new Panel();
             contenedor.Dock = DockStyle.Fill;
-            contenedor.AutoScroll = true; //permite moverse por la imagen de 1600x1600
+            contenedor.AutoScroll = true;
             contenedor.Controls.Add(lienzo);
 
-            Panel panelJugadores = new Panel(); //lateral con nombre y saldo de cada jugador
-            panelJugadores.Dock = DockStyle.Right;
-            panelJugadores.Width = 180;
+            Panel panelJugadores = new Panel();
+            panelJugadores.Dock = DockStyle.Top;
+            panelJugadores.Height = 200;
+            panelJugadores.BackColor = Color.White;
 
             int i = 0;
-            while (i < 4) //crea las 4 etiquetas, una por jugador, sin foreach
+            while (i < 4)
             {
                 Label etiqueta = new Label();
                 etiqueta.AutoSize = true;
                 etiqueta.Location = new Point(10, 10 + i * 30);
-                etiqueta.ForeColor = coloresJugador[i];
-                etiqueta.Text = ""; //vacio hasta que llegue el primer ActualizarJugador
+                etiqueta.Text = "";
                 panelJugadores.Controls.Add(etiqueta);
                 etiquetasJugador[i] = etiqueta;
                 i++;
             }
 
-            this.Controls.Add(contenedor);
-            this.Controls.Add(panelJugadores);
-            this.Text = "Monopoly Distribuido";
+            Panel pnlCasilla = new Panel();
+            pnlCasilla.Dock = DockStyle.Fill;
+            pnlCasilla.BackColor = Color.FromArgb(245, 245, 245);
+            pnlCasilla.BorderStyle = BorderStyle.FixedSingle;
+            pnlCasilla.Padding = new Padding(15);
+
+            lblCasillaNombre = new Label { Text = "Nombre: --", AutoSize = true, Location = new Point(15, 15) };
+            pnlCasilla.Controls.Add(lblCasillaNombre);
+
+            lblCasillaPropiedad = new Label { Text = "Propiedad: --", AutoSize = true, Location = new Point(15, 45) };
+            pnlCasilla.Controls.Add(lblCasillaPropiedad);
+
+            lblCasillaCompra = new Label { Text = "Precio Compra: $0", AutoSize = true, Location = new Point(15, 75) };
+            pnlCasilla.Controls.Add(lblCasillaCompra);
+
+            lblCasillaAlquiler = new Label { Text = "Precio Alquiler: $0", AutoSize = true, Location = new Point(15, 105) };
+            pnlCasilla.Controls.Add(lblCasillaAlquiler);
+
+            btnComprar = new Button { Text = "Comprar", Location = new Point(15, 145), Width = 75, Height = 35 };
+            btnComprar.Click += BtnComprar_Click;
+            pnlCasilla.Controls.Add(btnComprar);
+
+            btnPasar = new Button { Text = "Pasar", Location = new Point(100, 145), Width = 75, Height = 35 };
+            btnPasar.Click += BtnPasar_Click;
+            pnlCasilla.Controls.Add(btnPasar);
+
+            Panel pnlDerechaConCasilla = new Panel();
+            pnlDerechaConCasilla.Dock = DockStyle.Right;
+            pnlDerechaConCasilla.Width = 180;
+            pnlDerechaConCasilla.Controls.Add(pnlCasilla);
+            pnlDerechaConCasilla.Controls.Add(panelJugadores);
+            
+
+            this.Text = "Monopoly Tico";
             this.ClientSize = new Size(1080, 700);
+            this.Controls.Add(contenedor);
+            this.Controls.Add(pnlDerechaConCasilla);
         }
+
 
         public void ActualizarJugador(int id, string nombre, int saldo, int casilla, bool activo) //llamado por Red/Cliente al recibir JUGADOR|id|nombre|saldo|casilla|activo
         {
@@ -130,6 +179,30 @@ namespace Monopoly.Interfaz
             lienzo.Invalidate(); //fuerza a que Lienzo_Paint se ejecute de nuevo
         }
 
+        public void ActualizarCasilla(string nombre, string propiedad, int precioCompra, int precioAlquiler)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => ActualizarCasilla(nombre, propiedad, precioCompra, precioAlquiler)));
+                return;
+            }
+
+            lblCasillaNombre.Text = "Nombre: " + nombre;
+            lblCasillaPropiedad.Text = "Propiedad: " + propiedad;
+            lblCasillaCompra.Text = "Precio Compra: $" + precioCompra;
+            lblCasillaAlquiler.Text = "Precio Alquiler: $" + precioAlquiler;
+        }
+
+        private void BtnComprar_Click(object? sender, EventArgs e)
+        {
+            //enviar comando al servidor
+        }
+
+        private void BtnPasar_Click(object? sender, EventArgs e)
+        {
+            //enviar comando al servidor
+        }
+
         private void Lienzo_Paint(object? sender, PaintEventArgs e) //dibuja las fichas sobre la imagen
         {
             int i = 0;
@@ -137,15 +210,11 @@ namespace Monopoly.Interfaz
             {
                 if (activos[i] && nombres[i] != null) //solo dibuja jugadores ya anunciados y activos
                 {
-                    Point p = coordenadas[casillas[i]]; //coordenada tal cual la mediste, sin conversion
-
-                    //pequeño desfase por jugador para que no queden apiladas exactamente encima
+                    Point p = coordenadas[casillas[i]];
                     int offsetX = (i % 2) * 12;
                     int offsetY = (i / 2) * 12;
 
-                    Brush pincel = new SolidBrush(coloresJugador[i]);
-                    e.Graphics.FillEllipse(pincel, p.X + offsetX, p.Y + offsetY, 14, 14);
-                    pincel.Dispose();
+                    e.Graphics.DrawImage(imagenesJugador[i], p.X + offsetX, p.Y + offsetY, 64, 64);
                 }
                 i++;
             }
