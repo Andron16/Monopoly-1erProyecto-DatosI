@@ -102,6 +102,7 @@ namespace Monopoly.Red
                 juego.AgregarJugador(new Jugador(conexion.Id, conexion.Nombre, Juego.SaldoInicial)); //el id de la conexion es el id del jugador
                 Enviar(conexion, Protocolo.Armar(Comandos.Bienvenido, conexion.Id.ToString()));
                 Difundir(Protocolo.Armar(Comandos.Mensaje, conexion.Nombre + " se unio (" + conectados + "/" + MaxJugadores + ")"));
+                DifundirEstado(); //todos reciben JUGADOR|... de los que ya entraron; el lobby se llena de a uno
 
                 if (conectados == MaxJugadores) //ya estan los 4: arranca la partida
                 {

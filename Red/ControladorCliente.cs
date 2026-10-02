@@ -13,6 +13,8 @@ namespace Monopoly.Red
         public Action<int, string, int, int, bool>? AlActualizarJugador { get; set; } //id, nombre, saldo, casilla, activo
         public Action<string>? AlCambiarTurno { get; set; } //"Es tu turno", "Turno de X" o fin de partida
         public Action<string>? AlRegistrar { get; set; } //texto legible de cada mensaje del servidor
+        public Action<int>? AlConectado { get; set; } //llego BIENVENIDO: el servidor confirmo y asigno el numero de jugador
+        public Action? AlEmpezarPartida { get; set; } //llego INICIO: ya estan los 4 y arranca la partida
 
         public ControladorCliente() //prepara el controlador sin conectar
         {
@@ -43,7 +45,12 @@ namespace Monopoly.Red
                 if (AlActualizarJugador != null) AlActualizarJugador(Numero(p[1]), p[2], Numero(p[3]), Numero(p[4]), p[5] == "1");
                 return; //no va al registro: se ve en el tablero
             }
-            if (c == Comandos.Bienvenido && p.Length >= 2) MiId = Numero(p[1]); //guarda quien soy
+            if (c == Comandos.Bienvenido && p.Length >= 2) //guarda quien soy y avisa que la conexion fue aceptada
+            {
+                MiId = Numero(p[1]);
+                if (AlConectado != null) AlConectado(MiId);
+            }
+            if (c == Comandos.Inicio && AlEmpezarPartida != null) AlEmpezarPartida(); //ya estan los 4
             if (c == Comandos.Turno && p.Length >= 3) Avisar(AlCambiarTurno, Numero(p[1]) == MiId ? "Es tu turno" : "Turno de " + p[2]);
             if (c == Comandos.Fin && p.Length >= 2) Avisar(AlCambiarTurno, "Partida terminada. Gano " + p[1]);
 

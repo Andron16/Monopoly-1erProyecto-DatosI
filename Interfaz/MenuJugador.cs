@@ -1,5 +1,4 @@
 //abigail
-//abigail
 
 using System;
 using System.Drawing;
@@ -7,36 +6,36 @@ using System.Windows.Forms;
 
 namespace Monopoly.Interfaz
 {
-    public class MenuJugador : Form
+    public class MenuJugador : Form //lobby: IP, nombre, conexion y lista de jugadores antes de la partida
     {
-        private TextBox txtIp;
-        private TextBox txtNombre;
-        private Button btnConectar;
-        private Label lblEstado;
-        private ListBox listJugadores;
-        private Label lblContador;
-        private Button btnIniciar;
+        private TextBox txtIp = null!; //IP del servidor; los controles se crean en InicializarControles
+        private TextBox txtNombre = null!; //nombre del jugador
+        private Button btnConectar = null!; //pide la conexion
+        private Label lblEstado = null!; //desconectado / conectando / conectado
+        private Label lblLista = null!; //nombres de los conectados, uno por linea; sin colecciones nativas (regla 2.2)
+        private Label lblContador = null!; //"n/4 listos"
+        private Button btnIniciar = null!; //pasa al tablero cuando estan los 4
 
-        private string?[] nombres = new string?[4];
-        private int cantidadListos = 0;
+        private string?[] nombres = new string?[4]; //nombre de cada jugador por id (1 a 4 -> indice 0 a 3)
+        private int cantidadListos = 0; //cuantos jugadores distintos se han anunciado
 
-        public event Action<string, string>? AlConectar;
-        public event Action? AlIniciar;
+        public event Action<string, string>? AlConectar; //ip y nombre escritos por el jugador
+        public event Action? AlIniciar; //el jugador pidio pasar al tablero
 
-        public MenuJugador()
+        public MenuJugador() //arma la ventana del lobby
         {
             Text = "Monopoly Tico";
-            ClientSize = new Size(600, 700);
+            ClientSize = new Size(600, 800);
             StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.FromArgb(252, 240, 218); //azul oscuro moderno
+            BackColor = Color.FromArgb(252, 240, 218);
             Font = new Font("Segoe UI", 10);
 
             InicializarControles();
         }
 
-        private void InicializarControles()
+        private void InicializarControles() //crea y acomoda todos los controles del lobby
         {
-            //panel superior con degradado
+            //panel superior con el titulo
             Panel pnlHeader = new Panel();
             pnlHeader.Dock = DockStyle.Top;
             pnlHeader.Height = 120;
@@ -61,7 +60,7 @@ namespace Monopoly.Interfaz
 
             Controls.Add(pnlHeader);
 
-            //panel principal con inputs
+            //panel principal con los campos
             Panel pnlMain = new Panel();
             pnlMain.Dock = DockStyle.Fill;
             pnlMain.BackColor = Color.FromArgb(20, 33, 61);
@@ -118,7 +117,7 @@ namespace Monopoly.Interfaz
             btnConectar.Click += BtnConectar_Click;
             pnlMain.Controls.Add(btnConectar);
 
-            //estado
+            //estado de la conexion
             lblEstado = new Label();
             lblEstado.Text = "Desconectado";
             lblEstado.ForeColor = Color.FromArgb(244, 67, 54); //rojo
@@ -135,7 +134,7 @@ namespace Monopoly.Interfaz
             sep1.Size = new Size(540, 1);
             pnlMain.Controls.Add(sep1);
 
-            //titulo jugadores
+            //titulo de la lista de jugadores
             Label lblJugadores = new Label();
             lblJugadores.Text = "Jugadores conectados";
             lblJugadores.ForeColor = Color.FromArgb(200, 220, 255);
@@ -144,17 +143,18 @@ namespace Monopoly.Interfaz
             lblJugadores.Location = new Point(30, 320);
             pnlMain.Controls.Add(lblJugadores);
 
-            //listbox de jugadores
-            listJugadores = new ListBox();
-            listJugadores.Location = new Point(30, 360);
-            listJugadores.Size = new Size(540, 150);
-            listJugadores.BackColor = Color.FromArgb(40, 50, 80);
-            listJugadores.ForeColor = Color.FromArgb(76, 175, 80);
-            listJugadores.Font = new Font("Segoe UI", 11, FontStyle.Bold);
-            listJugadores.BorderStyle = BorderStyle.FixedSingle;
-            pnlMain.Controls.Add(listJugadores);
+            //lista de jugadores: un Label de varias lineas armado desde el arreglo nombres[]
+            lblLista = new Label();
+            lblLista.Location = new Point(30, 360);
+            lblLista.Size = new Size(540, 150);
+            lblLista.BackColor = Color.FromArgb(40, 50, 80);
+            lblLista.ForeColor = Color.FromArgb(76, 175, 80);
+            lblLista.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+            lblLista.BorderStyle = BorderStyle.FixedSingle;
+            lblLista.Padding = new Padding(8);
+            pnlMain.Controls.Add(lblLista);
 
-            //contador
+            //contador de jugadores listos
             lblContador = new Label();
             lblContador.Text = "0/4 listos";
             lblContador.ForeColor = Color.FromArgb(255, 235, 59); //amarillo
@@ -163,7 +163,7 @@ namespace Monopoly.Interfaz
             lblContador.Location = new Point(30, 525);
             pnlMain.Controls.Add(lblContador);
 
-            //boton iniciar
+            //boton para pasar al tablero
             btnIniciar = new Button();
             btnIniciar.Text = "Iniciar partida";
             btnIniciar.Location = new Point(30, 560);
@@ -173,64 +173,65 @@ namespace Monopoly.Interfaz
             btnIniciar.ForeColor = Color.White;
             btnIniciar.FlatStyle = FlatStyle.Flat;
             btnIniciar.FlatAppearance.BorderSize = 0;
-            btnIniciar.Enabled = false;
+            btnIniciar.Enabled = false; //se habilita cuando estan los 4
             btnIniciar.Cursor = Cursors.Hand;
             btnIniciar.Click += BtnIniciar_Click;
             pnlMain.Controls.Add(btnIniciar);
 
             Controls.Add(pnlMain);
+            pnlMain.BringToFront(); //el panel Fill se acomoda al final: ocupa lo que deja el encabezado y no queda tapado
         }
 
-        private void BtnConectar_Click(object? sender, EventArgs e)
+        private void BtnConectar_Click(object? sender, EventArgs e) //valida los datos y avisa con AlConectar
         {
-            if (string.IsNullOrWhiteSpace(txtIp.Text) || string.IsNullOrWhiteSpace(txtNombre.Text))
+            if (string.IsNullOrWhiteSpace(txtIp.Text) || string.IsNullOrWhiteSpace(txtNombre.Text)) //faltan datos
             {
                 MessageBox.Show("Ingresa la IP y tu nombre", "Falta informacion", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            btnConectar.Enabled = false;
+            btnConectar.Enabled = false; //evita conectar dos veces
             lblEstado.Text = "Conectando...";
             lblEstado.ForeColor = Color.FromArgb(255, 193, 7); //naranja
 
             AlConectar?.Invoke(txtIp.Text, txtNombre.Text);
         }
 
-        public void ConexionConfirmada()
+        public void ConexionConfirmada() //muestra conectado; se puede llamar desde el hilo de red
         {
-            if (InvokeRequired)
+            if (InvokeRequired) //viene del hilo de red: se pasa al hilo de la ventana
             {
                 Invoke(new Action(ConexionConfirmada));
                 return;
             }
 
             lblEstado.Text = "Conectado ✓";
-            lblEstado.ForeColor = Color.FromArgb(76, 175, 80);
+            lblEstado.ForeColor = Color.FromArgb(76, 175, 80); //verde
         }
 
-        public void ConexionFallida()
+        public void ConexionFallida() //muestra el error y vuelve a habilitar Conectar
         {
-            if (InvokeRequired)
+            if (InvokeRequired) //viene del hilo de red: se pasa al hilo de la ventana
             {
                 Invoke(new Action(ConexionFallida));
                 return;
             }
 
             lblEstado.Text = "Error de conexion";
-            lblEstado.ForeColor = Color.FromArgb(244, 67, 54);
-            btnConectar.Enabled = true;
+            lblEstado.ForeColor = Color.FromArgb(244, 67, 54); //rojo
+            btnConectar.Enabled = true; //permite reintentar
         }
 
-        public void ActualizarJugador(int id, string nombre)
+        public void ActualizarJugador(int id, string nombre) //agrega o actualiza un jugador en la lista
         {
-            if (InvokeRequired)
+            if (InvokeRequired) //viene del hilo de red: se pasa al hilo de la ventana
             {
                 Invoke(new Action(() => ActualizarJugador(id, nombre)));
                 return;
             }
 
-            int indice = id - 1;
-            bool esNuevo = nombres[indice] == null;
+            int indice = id - 1; //id de 1 a 4 -> indice de 0 a 3
+            bool esNuevo = nombres[indice] == null; //solo cuenta la primera vez que aparece
             nombres[indice] = nombre;
 
             if (esNuevo)
@@ -239,26 +240,25 @@ namespace Monopoly.Interfaz
             RedibujarLista();
         }
 
-        private void RedibujarLista()
+        private void RedibujarLista() //arma el texto de la lista recorriendo el arreglo nombres[]
         {
-            listJugadores.Items.Clear();
-
+            string texto = "";
             int i = 0;
-            while (i < 4)
+            while (i < 4) //los 4 espacios posibles, sin foreach
             {
-                if (nombres[i] != null)
-                    listJugadores.Items.Add("✓ " + nombres[i]);
+                if (nombres[i] != null) texto += "✓ " + nombres[i] + Environment.NewLine;
                 i++;
             }
+            lblLista.Text = texto;
 
             lblContador.Text = cantidadListos + "/4 listos";
-            btnIniciar.Enabled = (cantidadListos == 4);
+            btnIniciar.Enabled = (cantidadListos == 4); //solo se puede pasar al tablero con los 4
 
             if (cantidadListos == 4)
                 btnIniciar.BackColor = Color.FromArgb(103, 58, 183); //purpura mas brillante
         }
 
-        private void BtnIniciar_Click(object? sender, EventArgs e)
+        private void BtnIniciar_Click(object? sender, EventArgs e) //avisa con AlIniciar que hay que pasar al tablero
         {
             AlIniciar?.Invoke();
         }
