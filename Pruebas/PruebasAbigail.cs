@@ -11,7 +11,7 @@ namespace Monopoly.Pruebas
     {
         public static void Ejecutar() //pruebas que NO esperan nada del usuario; la prueba visual vive aparte
         {
-            ProbarColaCircular();
+            ProbarMenuJugador();
         }
 
         private static void ProbarColaCircular() //verifica cola vacia, un elemento, Avanzar y los 4 casos de Eliminar
@@ -75,6 +75,33 @@ namespace Monopoly.Pruebas
             vista.ActualizarJugador(4, "Dani", 1500, 31, true);
 
             Application.Run(vista); //bloquea hasta que se cierre la ventana
+        }
+
+        private static void ProbarMenuJugador()
+        {
+            Console.WriteLine("=== MenuJugador ===");
+
+            MenuJugador menu = new MenuJugador();
+            menu.Show(); //muestra la ventana
+
+            //simula actualizaciones de jugadores desde otro hilo (como si vinieran del servidor)
+            System.Threading.Thread thread = new System.Threading.Thread(() =>
+            {
+                System.Threading.Thread.Sleep(2000);
+                menu.ActualizarJugador(1, "Andron");
+                System.Threading.Thread.Sleep(1000);
+                menu.ActualizarJugador(2, "Palma");
+                System.Threading.Thread.Sleep(1000);
+                menu.ActualizarJugador(3, "Abigail");
+                System.Threading.Thread.Sleep(1000);
+                menu.ActualizarJugador(4, "Celeste");
+                System.Threading.Thread.Sleep(1000);
+                menu.ConexionConfirmada();
+            });
+            thread.IsBackground = true;
+            thread.Start();
+
+            System.Windows.Forms.Application.Run(menu); //abre la ventana y espera que la cierres manualmente
         }
     }
 }
