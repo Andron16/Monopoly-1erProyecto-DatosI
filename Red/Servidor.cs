@@ -4,6 +4,9 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Monopoly.Dominio;
+using Monopoly.Estructuras;
+using Monopoly.Reportes;
 
 namespace Monopoly.Red
 {
@@ -16,14 +19,16 @@ namespace Monopoly.Red
         private ConexionCliente?[] conexiones; //un espacio por jugador; null si esta libre
         private int conectados; //jugadores que ya enviaron CONECTAR
         private object candado; //un solo candado para todo el estado compartido
+        private Juego juego; //estado oficial de la partida; solo el servidor lo modifica
 
-        public Servidor(int puerto) //prepara el servidor sin abrir el puerto todavia
+        public Servidor(int puerto, Juego juego) //prepara el servidor sin abrir el puerto todavia
         {
             this.puerto = puerto;
             escucha = null;
             conexiones = new ConexionCliente?[MaxJugadores];
             conectados = 0;
             candado = new object();
+            this.juego = juego; //la partida la crea Program y el servidor la administra
         }
 
         public void Iniciar() //abre el puerto y acepta conexiones hasta completar los 4 jugadores
@@ -94,12 +99,16 @@ namespace Monopoly.Red
                 }
                 conexion.Nombre = partes[1];
                 conectados++;
+                juego.AgregarJugador(new Jugador(conexion.Id, conexion.Nombre, Juego.SaldoInicial)); //el id de la conexion es el id del jugador
                 Enviar(conexion, Protocolo.Armar(Comandos.Bienvenido, conexion.Id.ToString()));
                 Difundir(Protocolo.Armar(Comandos.Mensaje, conexion.Nombre + " se unio (" + conectados + "/" + MaxJugadores + ")"));
 
                 if (conectados == MaxJugadores) //ya estan los 4: arranca la partida
                 {
+                    juego.Iniciar(); //tablero, mazo y fichas en la salida
                     Difundir(Protocolo.Armar(Comandos.Inicio));
+                    DifundirEstado();
+                    AnunciarTurno();
                 }
                 return;
             }
@@ -110,8 +119,160 @@ namespace Monopoly.Red
                 return;
             }
 
-            //TEMPORAL: aqui se conecta la logica de Juego cuando este completa
-            Difundir(Protocolo.Armar(Comandos.Mensaje, conexion.Nombre + " envio " + comando));
+            if (!juego.Iniciado) //todavia faltan jugadores
+            {
+                Enviar(conexion, Protocolo.Armar(Comandos.Error, "La partida no ha iniciado"));
+                return;
+            }
+            ProcesarJugada(conexion, comando);
+        }
+
+        private void ProcesarJugada(ConexionCliente conexion, string comando) //ejecuta un comando de juego; siempre dentro del candado
+        {
+            int id = conexion.Id; //el servidor sabe quien es por la conexion, no por lo que diga el mensaje
+
+            if (comando == Comandos.ConsultarEstado) { EnviarEstado(conexion); return; } //consultas: se permiten en cualquier momento
+            if (comando == Comandos.ConsultarTransacciones) { EnviarHistorial(conexion); return; }
+
+            if (juego.Terminado)
+            {
+                Enviar(conexion, Protocolo.Armar(Comandos.Error, "La partida ya termino"));
+                return;
+            }
+            if (!juego.EsSuTurno(id)) //validacion: jugar fuera de turno
+            {
+                Enviar(conexion, Protocolo.Armar(Comandos.Error, "No es su turno"));
+                return;
+            }
+
+            int transaccionesAntes = juego.Historial.Contar(); //para avisar solo las nuevas
+            int turnoAntes = juego.NumeroTurno; //para saber si el turno cambio
+            Jugador jugador = juego.JugadorActual();
+
+            if (comando == Comandos.TirarDados)
+            {
+                if (!juego.TirarDados(id)) //validacion: lanzar dos veces
+                {
+                    Enviar(conexion, Protocolo.Armar(Comandos.Error, "Ya tiro los dados en este turno"));
+                    return;
+                }
+                Casilla casilla = jugador.Posicion!.Dato;
+                Difundir(Protocolo.Armar(Comandos.Dados, id.ToString(), juego.Dado.Obtener1().ToString(), juego.Dado.Obtener2().ToString()));
+                Difundir(Protocolo.Armar(Comandos.Movimiento, id.ToString(), casilla.Id.ToString(), casilla.Nombre));
+
+                if (!jugador.Activo) //quebro en esta jugada
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + " quedo eliminado"));
+                }
+                else
+                {
+                    Propiedad? propiedad = casilla as Propiedad; //null si no es propiedad
+                    if (propiedad != null && propiedad.EstaDisponible()) //libre: se le ofrece solo a el
+                    {
+                        Enviar(conexion, Protocolo.Armar(Comandos.OfrecerCompra, propiedad.Nombre, propiedad.Precio.ToString()));
+                    }
+                }
+            }
+            else if (comando == Comandos.ComprarPropiedad)
+            {
+                if (!juego.ComprarPropiedadActual(id)) //validacion: sin saldo, con dueño o no es propiedad
+                {
+                    Enviar(conexion, Protocolo.Armar(Comandos.Error, "No se pudo comprar"));
+                    return;
+                }
+            }
+            else if (comando == Comandos.NoComprar)
+            {
+                Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + " no compro"));
+            }
+            else if (comando == Comandos.TerminarTurno)
+            {
+                if (!juego.TerminarTurno(id)) //validacion: no puede pasar sin tirar
+                {
+                    Enviar(conexion, Protocolo.Armar(Comandos.Error, "Primero debe tirar los dados"));
+                    return;
+                }
+            }
+            else
+            {
+                Enviar(conexion, Protocolo.Armar(Comandos.Error, "Comando desconocido"));
+                return;
+            }
+
+            //despues de cada accion importante se actualiza a todos
+            DifundirTransaccionesNuevas(transaccionesAntes);
+            DifundirEstado();
+            if (juego.Terminado) AnunciarFin();
+            else if (juego.NumeroTurno != turnoAntes) AnunciarTurno(); //termino su turno o quebro
+        }
+
+        private void DifundirTransaccionesNuevas(int desde) //avisa las transacciones que genero la ultima accion
+        {
+            int nuevas = juego.Historial.Contar() - desde;
+            if (nuevas <= 0) return;
+            NodoDoble<Transaccion> actual = juego.Historial.Ultimo()!;
+            int i = 1;
+            while (i < nuevas) //retrocede con Anterior hasta la primera transaccion nueva
+            {
+                actual = actual.Anterior!;
+                i++;
+            }
+            NodoDoble<Transaccion>? nodo = actual;
+            while (nodo != null) //y de ahi avanza hasta la ultima
+            {
+                Transaccion t = nodo.Dato;
+                Difundir(Protocolo.Armar(Comandos.Mensaje, t.Origen + " -> " + t.Destino + ": " + t.Monto + " (" + t.Descripcion + ")"));
+                nodo = nodo.Siguiente;
+            }
+        }
+
+        private string LineaJugador(Jugador j) //arma JUGADOR|id|nombre|saldo|casilla|activo
+        {
+            int casilla = j.Posicion == null ? 0 : j.Posicion.Dato.Id;
+            return Protocolo.Armar(Comandos.EstadoJugador, j.Id.ToString(), j.Nombre, j.Saldo.ToString(), casilla.ToString(), j.Activo ? "1" : "0");
+        }
+
+        private void DifundirEstado() //manda el estado de los 4 jugadores a todos
+        {
+            for (int id = 1; id <= juego.CantidadJugadores(); id++)
+            {
+                Jugador? j = juego.ObtenerJugador(id);
+                if (j != null) Difundir(LineaJugador(j));
+            }
+        }
+
+        private void EnviarEstado(ConexionCliente conexion) //manda el estado de los 4 jugadores solo a quien lo pidio
+        {
+            for (int id = 1; id <= juego.CantidadJugadores(); id++)
+            {
+                Jugador? j = juego.ObtenerJugador(id);
+                if (j != null) Enviar(conexion, LineaJugador(j));
+            }
+        }
+
+        private void EnviarHistorial(ConexionCliente conexion) //manda el historial completo, una linea por transaccion
+        {
+            if (juego.Historial.EstaVacia()) { Enviar(conexion, Protocolo.Armar(Comandos.Mensaje, "Todavia no hay transacciones")); return; } //avisa en vez de no responder
+            NodoDoble<Transaccion>? actual = juego.Historial.Primero();
+            while (actual != null)
+            {
+                Enviar(conexion, Protocolo.Armar(Comandos.Transaccion, actual.Dato.ATexto()));
+                actual = actual.Siguiente;
+            }
+        }
+
+        private void AnunciarTurno() //avisa a todos de quien es el turno
+        {
+            Jugador j = juego.JugadorActual();
+            Difundir(Protocolo.Armar(Comandos.Turno, j.Id.ToString(), j.Nombre));
+        }
+
+        private void AnunciarFin() //anuncia al ganador y exporta el reporte de la partida
+        {
+            Jugador? ganador = juego.Ganador();
+            Difundir(Protocolo.Armar(Comandos.Fin, ganador == null ? "nadie" : ganador.Nombre));
+            bool exportado = ReporteTransacciones.Exportar(juego.Historial, "docs/transacciones/reporte_partida.txt");
+            Console.WriteLine("[Servidor] Reporte exportado: " + exportado);
         }
 
         private void Enviar(ConexionCliente conexion, string mensaje) //manda un mensaje a un solo jugador

@@ -1,0 +1,13 @@
+REPORTE DE TRANSACCIONES - MONOPOLY
+Generado: 02/10/2026 00:52:02
+Total de transacciones: 6
+Orden: de la mas antigua a la mas reciente
+
+#     Turno  Hora      Tipo                Origen      Destino        Monto  Descripcion
+----------------------------------------------------------------------------------------------------
+1     1      00:45:38  CompraPropiedad     Ana         BANCO             80  Compra de Zapote
+2     4      00:48:55  CompraPropiedad     Dani        BANCO            100  Compra de Jaco
+3     5      00:49:48  CompraPropiedad     Ana         BANCO            160  Compra de La Carpio
+4     6      00:50:27  PagoAlquiler        Carla       Dani              20  Alquiler de Jaco
+5     7      00:51:14  CompraPropiedad     Dani        BANCO            140  Compra de Faro
+6     8      00:51:51  CompraPropiedad     Ana         BANCO            180  Compra de Mercado Central

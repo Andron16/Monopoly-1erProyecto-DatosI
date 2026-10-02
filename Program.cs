@@ -7,6 +7,7 @@ namespace Monopoly
     class Program //punto de entrada unico; despacha segun el rol recibido
     {
         private const int PuertoTcp = 5000; //puerto de red donde escucha el servidor
+        private const int LimiteTurnos = 100; //turnos individuales antes de terminar por patrimonio
 
         [STAThread] //requerido por Windows Forms para abrir la ventana del cliente
         static void Main(string[] args) //decide que rol ejecutar
@@ -17,9 +18,11 @@ namespace Monopoly
             {
                 case "servidor":
                     {
-                        string puerto = args.Length > 1 ? args[1] : "COM9"; //segundo argumento opcional: puerto de la Pico
-                        Console.WriteLine("Iniciando servidor (modulo fisico en " + puerto + ")...");
-                        new Monopoly.Red.Servidor(PuertoTcp).Iniciar();
+                        bool usarPico = args.Length > 1; //la Pico solo se usa si se indica su COM
+                        string puerto = usarPico ? args[1] : "COM9";
+                        Console.WriteLine(usarPico ? "Iniciando servidor con la Pico en " + puerto + "..." : "Iniciando servidor con dados por software...");
+                        Monopoly.Dominio.Juego juego = new Monopoly.Dominio.Juego(LimiteTurnos, usarPico, puerto);
+                        new Monopoly.Red.Servidor(PuertoTcp, juego).Iniciar();
                         break;
                     }
 

@@ -17,6 +17,8 @@ namespace Monopoly.Pruebas
             ProbarReporte();
             ProbarBusquedas();
             ProbarProtocolo();
+            ProbarJuego();
+            ProbarEliminacion();
         }
 
         private static void ProbarListaDoble() //verifica agregado, conteo y recorridos en ambos sentidos
@@ -174,6 +176,108 @@ namespace Monopoly.Pruebas
             string conectar = Protocolo.Armar(Comandos.Conectar, "Ana|Beto");
             Console.WriteLine("Campo con separador: " + conectar); //se espera CONECTAR|Ana/Beto
             Console.WriteLine("Partes: " + Protocolo.Separar(conectar).Length); //se espera 2
+        }
+        private static void ProbarJuego() //simula una partida completa sin red: turnos, compras, eventos, eliminacion y fin
+        {
+            Console.WriteLine("=== Juego ===");
+
+            Juego juego = new Juego(60); //limite de 60 turnos, dados por software
+            //saldo bajo a proposito para que alguien quiebre y se pruebe la eliminacion
+            juego.AgregarJugador(new Jugador(1, "Ana", 150));
+            juego.AgregarJugador(new Jugador(2, "Beto", 150));
+            juego.AgregarJugador(new Jugador(3, "Carla", 150));
+            juego.AgregarJugador(new Jugador(4, "Dani", 150));
+            Console.WriteLine("Quinto jugador rechazado: " + !juego.AgregarJugador(new Jugador(5, "Eva", 400))); //se espera True
+
+            juego.Iniciar();
+            Console.WriteLine("Todos en la salida: " + (juego.ObtenerJugador(4)!.Posicion!.Dato.Id == 0)); //se espera True
+
+            //validaciones antes de jugar
+            Console.WriteLine("Turno de Ana: " + juego.EsSuTurno(1)); //se espera True
+            Console.WriteLine("Beto fuera de turno rechazado: " + !juego.TirarDados(2)); //se espera True
+            Console.WriteLine("Ana no puede terminar sin tirar: " + !juego.TerminarTurno(1)); //se espera True
+            Console.WriteLine("Ana tira: " + juego.TirarDados(1)); //se espera True
+            Console.WriteLine("Ana no puede tirar dos veces: " + !juego.TirarDados(1)); //se espera True
+            juego.TerminarTurno(1);
+
+            //partida automatica: cada jugador tira, compra si puede y pasa
+            int vueltas = 0; //tope de seguridad por si algo queda en ciclo
+            while (!juego.Terminado && vueltas < 200)
+            {
+                Jugador actual = juego.JugadorActual();
+                int turno = juego.NumeroTurno;
+                juego.TirarDados(actual.Id);
+                bool compro = actual.Activo && juego.ComprarPropiedadActual(actual.Id); //intenta comprar donde cayo
+
+                Console.WriteLine("T" + turno + " " + actual.Nombre
+                    + " dados " + juego.Dado.Obtener1() + "+" + juego.Dado.Obtener2()
+                    + " -> " + actual.Posicion!.Dato.Id + " " + actual.Posicion.Dato.Nombre
+                    + " | saldo " + actual.Saldo
+                    + (compro ? " | COMPRO" : "")
+                    + (actual.TurnosPerdidos > 0 ? " | pierde turno" : "")
+                    + (!actual.Activo ? " | ELIMINADO" : ""));
+
+                if (actual.Activo) juego.TerminarTurno(actual.Id); //si quebro, el turno ya paso solo
+                vueltas++;
+            }
+
+            Jugador? ganador = juego.Ganador();
+            Console.WriteLine("Terminado: " + juego.Terminado + " en el turno " + juego.NumeroTurno);
+            Console.WriteLine("Jugadores en la cola: " + juego.Turnos.Contar());
+            Console.WriteLine("Ganador: " + (ganador == null ? "ninguno" : ganador.Nombre + " con patrimonio " + ganador.CalcularPatrimonio()));
+            Console.WriteLine("Transacciones registradas: " + juego.Historial.Contar());
+            Console.WriteLine("  Compras: " + juego.BuscarPorTipo(TipoTransaccion.CompraPropiedad).Contar());
+            Console.WriteLine("  Alquileres: " + juego.BuscarPorTipo(TipoTransaccion.PagoAlquiler).Contar());
+            Console.WriteLine("  Premios salida: " + juego.BuscarPorTipo(TipoTransaccion.PremioPorInicio).Contar());
+            Console.WriteLine("  Eventos (+): " + juego.BuscarPorTipo(TipoTransaccion.GananciaPorEvento).Contar());
+            Console.WriteLine("  Eventos (-): " + juego.BuscarPorTipo(TipoTransaccion.PerdidaPorEvento).Contar());
+            Console.WriteLine();
+        }
+        private static void ProbarEliminacion() //fuerza quiebras: Beto es dueño de todo y los demas empiezan sin dinero
+        {
+            Console.WriteLine("=== Eliminacion y fin por ultimo jugador ===");
+
+            Juego juego = new Juego(200); //limite alto: la partida debe terminar por eliminacion, no por turnos
+            Jugador beto = new Jugador(2, "Beto", 1500);
+            juego.AgregarJugador(new Jugador(1, "Ana", 0));
+            juego.AgregarJugador(beto);
+            juego.AgregarJugador(new Jugador(3, "Carla", 0));
+            juego.AgregarJugador(new Jugador(4, "Dani", 0));
+            juego.Iniciar();
+
+            int i = 0;
+            while (i < juego.Tablero.Contar()) //le asigna a Beto todas las propiedades del tablero
+            {
+                Propiedad? p = juego.Tablero.ObtenerCasilla(i) as Propiedad; //null si no es propiedad
+                if (p != null)
+                {
+                    p.Propietario = beto;
+                    beto.AgregarPropiedad(p);
+                    p.Alquiler = 10000; //alquiler imposible de pagar: el que caiga en una propiedad quiebra
+                }
+                i++;
+            }
+            Console.WriteLine("Propiedades de Beto: " + beto.Propiedades.Contar()); //se espera 21
+
+            int vueltas = 0;
+            while (!juego.Terminado && vueltas < 200)
+            {
+                Jugador actual = juego.JugadorActual();
+                int turno = juego.NumeroTurno;
+                juego.TirarDados(actual.Id);
+                Console.WriteLine("T" + turno + " " + actual.Nombre + " -> " + actual.Posicion!.Dato.Nombre
+                    + " | saldo " + actual.Saldo + (!actual.Activo ? " | ELIMINADO" : ""));
+                if (actual.Activo) juego.TerminarTurno(actual.Id); //si quebro, el turno ya paso solo
+                vueltas++;
+            }
+
+            Jugador? ganador = juego.Ganador();
+            Console.WriteLine("Terminado: " + juego.Terminado + " en el turno " + juego.NumeroTurno); //se espera True, mucho antes de 200
+            Console.WriteLine("Jugadores en la cola: " + juego.Turnos.Contar()); //se espera 1
+            Console.WriteLine("Ganador: " + (ganador == null ? "ninguno" : ganador.Nombre)); //se espera Beto
+            Console.WriteLine("Ana puede actuar: " + juego.EsSuTurno(1)); //se espera False
+            Console.WriteLine("Alquileres cobrados: " + juego.BuscarPorTipo(TipoTransaccion.PagoAlquiler).Contar()); //se espera 0: con saldo 0 nadie paga, quiebra
+            Console.WriteLine();
         }
     }
 }
