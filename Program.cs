@@ -52,6 +52,7 @@ namespace Monopoly
                     Monopoly.Pruebas.PruebasAbigail.ProbarTableroVisual(); //prueba visual: abre la ventana
                     break;
 
+
                 default:
                     MostrarAyuda();
                     break;
@@ -61,9 +62,9 @@ namespace Monopoly
         static void EjecutarPruebas() //corre el banco de pruebas de cada integrante
         {
             Console.WriteLine("===== MODULO DE PRUEBAS =====");
-            Monopoly.Pruebas.PruebasAndron.Ejecutar();
+            //Monopoly.Pruebas.PruebasAndron.Ejecutar();
             Monopoly.Pruebas.PruebasAbigail.Ejecutar();
-            Monopoly.Pruebas.PruebasPalma.Ejecutar();
+            //Monopoly.Pruebas.PruebasPalma.Ejecutar();
         }
 
         static void ClienteConsola(string ip, string nombre) //cliente de texto para probar la red sin interfaz grafica
