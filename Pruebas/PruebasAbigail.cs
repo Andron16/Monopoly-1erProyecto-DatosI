@@ -11,7 +11,7 @@ namespace Monopoly.Pruebas
     {
         public static void Ejecutar() //pruebas que NO esperan nada del usuario; la prueba visual vive aparte
         {
-            ProbarMenuJugador();
+            ProbarColaCircular();
         }
 
         private static void ProbarColaCircular() //verifica cola vacia, un elemento, Avanzar y los 4 casos de Eliminar
@@ -77,7 +77,7 @@ namespace Monopoly.Pruebas
             Application.Run(vista); //bloquea hasta que se cierre la ventana
         }
 
-        private static void ProbarMenuJugador()
+        public static void ProbarMenuJugador() //abre el lobby; va en su propio rol ("menu") porque bloquea
         {
             Console.WriteLine("=== MenuJugador ===");
 

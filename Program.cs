@@ -53,8 +53,9 @@ namespace Monopoly
                 case "tablero":
                     Monopoly.Pruebas.PruebasAbigail.ProbarTableroVisual(); //prueba visual: abre la ventana
                     break;
-
-
+                case "menu":
+                    Monopoly.Pruebas.PruebasAbigail.ProbarMenuJugador(); //prueba visual del lobby: abre la ventana
+                    break;
                 default:
                     MostrarAyuda();
                     break;
@@ -64,9 +65,9 @@ namespace Monopoly
         static void EjecutarPruebas() //corre el banco de pruebas de cada integrante
         {
             Console.WriteLine("===== MODULO DE PRUEBAS =====");
-            //Monopoly.Pruebas.PruebasAndron.Ejecutar();
+            Monopoly.Pruebas.PruebasAndron.Ejecutar();
             Monopoly.Pruebas.PruebasAbigail.Ejecutar();
-            //Monopoly.Pruebas.PruebasPalma.Ejecutar();
+            Monopoly.Pruebas.PruebasPalma.Ejecutar();
         }
 
         static void ClienteConsola(string ip, string nombre) //cliente de texto para probar la red sin interfaz grafica
@@ -143,6 +144,7 @@ namespace Monopoly
             Console.WriteLine("  dotnet run -- pruebas                 : ejecuta las pruebas de cada integrante");
             Console.WriteLine("  dotnet run -- hardware                : prueba interactiva de la Pico (dados + RFID)");
             Console.WriteLine("  dotnet run -- tablero                 : prueba visual del tablero");
+            Console.WriteLine("  dotnet run -- menu                    : prueba visual del lobby (MenuJugador)");
         }
     }
 }
