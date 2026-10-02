@@ -160,6 +160,7 @@ namespace Monopoly.Red
                 Casilla casilla = jugador.Posicion!.Dato;
                 Difundir(Protocolo.Armar(Comandos.Dados, id.ToString(), juego.Dado.Obtener1().ToString(), juego.Dado.Obtener2().ToString()));
                 Difundir(Protocolo.Armar(Comandos.Movimiento, id.ToString(), casilla.Id.ToString(), casilla.Nombre));
+                Difundir(LineaCasilla(casilla)); //datos de la casilla para el panel de la interfaz
 
                 if (!jugador.Activo) //quebro en esta jugada
                 {
@@ -181,6 +182,7 @@ namespace Monopoly.Red
                     Enviar(conexion, Protocolo.Armar(Comandos.Error, "No se pudo comprar"));
                     return;
                 }
+                Difundir(LineaCasilla(jugador.Posicion!.Dato)); //la casilla ahora muestra al nuevo dueño
             }
             else if (comando == Comandos.NoComprar)
             {
@@ -231,6 +233,14 @@ namespace Monopoly.Red
         {
             int casilla = j.Posicion == null ? 0 : j.Posicion.Dato.Id;
             return Protocolo.Armar(Comandos.EstadoJugador, j.Id.ToString(), j.Nombre, j.Saldo.ToString(), casilla.ToString(), j.Activo ? "1" : "0");
+        }
+
+        private string LineaCasilla(Casilla casilla) //arma CASILLA|nombre|dueño|precio|alquiler para el panel de la interfaz
+        {
+            Propiedad? propiedad = casilla as Propiedad; //solo las propiedades tienen dueño y precios
+            if (propiedad == null) return Protocolo.Armar(Comandos.Casilla, casilla.Nombre, "No se vende", "0", "0");
+            string duenio = propiedad.Propietario == null ? "Libre" : propiedad.Propietario.Nombre;
+            return Protocolo.Armar(Comandos.Casilla, casilla.Nombre, duenio, propiedad.Precio.ToString(), propiedad.Alquiler.ToString());
         }
 
         private void DifundirEstado() //manda el estado de los 4 jugadores a todos

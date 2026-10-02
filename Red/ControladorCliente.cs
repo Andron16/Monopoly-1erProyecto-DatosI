@@ -15,6 +15,7 @@ namespace Monopoly.Red
         public Action<string>? AlRegistrar { get; set; } //texto legible de cada mensaje del servidor
         public Action<int>? AlConectado { get; set; } //llego BIENVENIDO: el servidor confirmo y asigno el numero de jugador
         public Action? AlEmpezarPartida { get; set; } //llego INICIO: ya estan los 4 y arranca la partida
+        public Action<string, string, int, int>? AlActualizarCasilla { get; set; } //nombre, dueño, precio, alquiler de la casilla donde quedo el jugador en turno  
 
         public ControladorCliente() //prepara el controlador sin conectar
         {
@@ -44,6 +45,11 @@ namespace Monopoly.Red
             {
                 if (AlActualizarJugador != null) AlActualizarJugador(Numero(p[1]), p[2], Numero(p[3]), Numero(p[4]), p[5] == "1");
                 return; //no va al registro: se ve en el tablero
+            }
+            if (c == Comandos.Casilla && p.Length >= 5) //CASILLA|nombre|dueño|precio|alquiler
+            {
+                if (AlActualizarCasilla != null) AlActualizarCasilla(p[1], p[2], Numero(p[3]), Numero(p[4]));
+                return; //no va al registro: se ve en el panel de casilla
             }
             if (c == Comandos.Bienvenido && p.Length >= 2) //guarda quien soy y avisa que la conexion fue aceptada
             {

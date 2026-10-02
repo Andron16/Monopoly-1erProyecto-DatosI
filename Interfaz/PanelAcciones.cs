@@ -26,10 +26,8 @@ namespace Monopoly.Interfaz
 
             //cada boton solo llama al controlador; el servidor decide si la accion es valida
             AgregarBoton("Tirar dados", 10, (s, e) => controlador.TirarDados());
-            AgregarBoton("Comprar", 140, (s, e) => controlador.Comprar());
-            AgregarBoton("No comprar", 270, (s, e) => controlador.NoComprar());
-            AgregarBoton("Terminar turno", 400, (s, e) => controlador.TerminarTurno());
-            AgregarBoton("Transacciones", 530, (s, e) => controlador.PedirTransacciones());
+            AgregarBoton("Terminar turno", 140, (s, e) => controlador.TerminarTurno());
+            AgregarBoton("Transacciones", 270, (s, e) => controlador.PedirTransacciones()); //Comprar y Pasar estan en el panel de casilla de VistaTablero
 
             registro = new TextBox();
             registro.Multiline = true;

@@ -6,13 +6,19 @@ using System.Windows.Forms;
 
 namespace Monopoly.Interfaz
 {
-    public class VistaTablero : Form
+    public class VistaTablero : Form //ventana del tablero: imagen de fondo, fichas, jugadores y ultima casilla visitada
     {
-        private Panel contenedor; //permite hacer scroll sobre la imagen grande
-        private PictureBox lienzo; //donde se dibuja la imagen y las fichas
-        private Image fondoTablero; //imagen de fondo, cargada una sola vez
-        private Point[] coordenadas; //presentacion: pixel de cada casilla, NO es el tablero real
-        private Image[] imagenesJugador = new Image[4];
+        private const int TamanoFicha = 28; //lado en pixeles de cada ficha dibujada
+        private const int DesfaseFicha = 30; //separacion entre fichas en la misma casilla (cuadricula 2x2)
+
+        private Panel contenedor = null!; //permite hacer scroll sobre la imagen grande; se crea en InicializarLienzo
+        private PictureBox lienzo = null!; //donde se dibuja la imagen y las fichas
+        private Image fondoTablero = null!; //imagen de fondo, cargada una sola vez
+        private Point[] coordenadas = null!; //presentacion: pixel de cada casilla, NO es el tablero real
+        private Image[] imagenesJugador = new Image[4]; //ficha PNG de cada jugador
+
+        //colores de las etiquetas, en el mismo orden que las fichas (azul, naranja, verde, rosa)
+        private static readonly Color[] coloresJugador = { Color.RoyalBlue, Color.DarkOrange, Color.Green, Color.DeepPink };
 
         //datos de los 4 jugadores, llenados por ActualizarJugador; nunca por objetos Jugador,
         //porque el cliente solo recibe texto del servidor (regla 2.5)
@@ -21,14 +27,17 @@ namespace Monopoly.Interfaz
         private int[] casillas = new int[4]; //numero de casilla de cada jugador
         private bool[] activos = new bool[4]; //false: no se dibuja su ficha
 
-        private Label[] etiquetasJugador = new Label[4]; //nombre y saldo en un panel lateral
+        private Label[] etiquetasJugador = new Label[4]; //nombre y saldo en el panel derecho
 
-        private Label lblCasillaNombre;
-        private Label lblCasillaPropiedad;
-        private Label lblCasillaCompra;
-        private Label lblCasillaAlquiler;
-        private Button btnComprar;
-        private Button btnPasar;
+        private Label lblCasillaNombre = null!; //panel de la ultima casilla visitada
+        private Label lblCasillaPropiedad = null!; //dueño de la casilla
+        private Label lblCasillaCompra = null!; //precio de compra
+        private Label lblCasillaAlquiler = null!; //precio de alquiler
+        private Button btnComprar = null!; //compra la propiedad donde cayo el jugador
+        private Button btnPasar = null!; //rechaza la compra
+
+        public event Action? AlComprar; //el jugador apreto Comprar; quien lo use envia COMPRAR_PROPIEDAD
+        public event Action? AlPasar; //el jugador apreto Pasar; quien lo use envia NO_COMPRAR
 
         public VistaTablero() //ya no recibe Jugador[]: ese objeto no existe del lado del cliente
         {
@@ -37,7 +46,6 @@ namespace Monopoly.Interfaz
             InicializarCoordenadas();
             CargarImagenesJugadores();
             InicializarLienzo();
-
         }
 
         private void InicializarCoordenadas() //carga el mapa casilla -> pixel; SOLO es presentacion
@@ -71,16 +79,17 @@ namespace Monopoly.Interfaz
             coordenadas[22] = new Point(440, 85);
             coordenadas[23] = new Point(270, 85);
             //Chepe
-            coordenadas[24] = new Point(80, 278);
-            coordenadas[25] = new Point(80, 450);
-            coordenadas[26] = new Point(80, 640);
-            coordenadas[27] = new Point(80, 800);
-            coordenadas[28] = new Point(80, 965);
-            coordenadas[29] = new Point(80, 1150);
-            coordenadas[30] = new Point(80, 1350);
-            coordenadas[31] = new Point(80, 1515);
+            coordenadas[24] = new Point(80, 85); //esquina Chepe (arriba a la izquierda)
+            coordenadas[25] = new Point(80, 278);
+            coordenadas[26] = new Point(80, 450);
+            coordenadas[27] = new Point(80, 640);
+            coordenadas[28] = new Point(80, 800);
+            coordenadas[29] = new Point(80, 965);
+            coordenadas[30] = new Point(80, 1150);
+            coordenadas[31] = new Point(80, 1350); //Cerro Chirripo, justo arriba de la Salida
         }
-        private void CargarImagenesJugadores()
+
+        private void CargarImagenesJugadores() //carga las 4 fichas PNG una sola vez
         {
             imagenesJugador[0] = Image.FromFile("docs/bolaAzul.png");
             imagenesJugador[1] = Image.FromFile("docs/bolaNaranja.png");
@@ -88,38 +97,42 @@ namespace Monopoly.Interfaz
             imagenesJugador[3] = Image.FromFile("docs/bolaRosa.png");
         }
 
-        private void InicializarLienzo()
+        private void InicializarLienzo() //arma el tablero con scroll y el panel derecho (jugadores + ultima casilla)
         {
             fondoTablero = Image.FromFile("docs/Tablero.jpeg");
 
             lienzo = new PictureBox();
-            lienzo.Size = new Size(1600, 1600);
-            lienzo.SizeMode = PictureBoxSizeMode.AutoSize;
+            lienzo.Size = new Size(1600, 1600); //tamaño real de la imagen, sin reescalar
+            lienzo.SizeMode = PictureBoxSizeMode.AutoSize; //respeta el tamaño real
             lienzo.Image = fondoTablero;
-            lienzo.Paint += Lienzo_Paint;
+            lienzo.Paint += Lienzo_Paint; //aqui se dibujan las fichas, encima de la imagen
 
             contenedor = new Panel();
             contenedor.Dock = DockStyle.Fill;
-            contenedor.AutoScroll = true;
+            contenedor.AutoScroll = true; //permite moverse por la imagen de 1600x1600
             contenedor.Controls.Add(lienzo);
 
+            //panel de jugadores: arriba en la columna derecha
             Panel panelJugadores = new Panel();
             panelJugadores.Dock = DockStyle.Top;
             panelJugadores.Height = 200;
             panelJugadores.BackColor = Color.White;
 
             int i = 0;
-            while (i < 4)
+            while (i < 4) //crea las 4 etiquetas, una por jugador, sin foreach
             {
                 Label etiqueta = new Label();
                 etiqueta.AutoSize = true;
                 etiqueta.Location = new Point(10, 10 + i * 30);
-                etiqueta.Text = "";
+                etiqueta.ForeColor = coloresJugador[i]; //mismo color que su ficha
+                etiqueta.Font = new Font(etiqueta.Font, FontStyle.Bold);
+                etiqueta.Text = ""; //vacio hasta que llegue el primer ActualizarJugador
                 panelJugadores.Controls.Add(etiqueta);
                 etiquetasJugador[i] = etiqueta;
                 i++;
             }
 
+            //panel de la ultima casilla visitada: debajo de los jugadores
             Panel pnlCasilla = new Panel();
             pnlCasilla.Dock = DockStyle.Fill;
             pnlCasilla.BackColor = Color.FromArgb(245, 245, 245);
@@ -146,12 +159,12 @@ namespace Monopoly.Interfaz
             btnPasar.Click += BtnPasar_Click;
             pnlCasilla.Controls.Add(btnPasar);
 
+            //columna derecha: jugadores arriba (Top) y casilla abajo (Fill)
             Panel pnlDerechaConCasilla = new Panel();
             pnlDerechaConCasilla.Dock = DockStyle.Right;
-            pnlDerechaConCasilla.Width = 180;
+            pnlDerechaConCasilla.Width = 200;
             pnlDerechaConCasilla.Controls.Add(pnlCasilla);
             pnlDerechaConCasilla.Controls.Add(panelJugadores);
-            
 
             this.Text = "Monopoly Tico";
             this.ClientSize = new Size(1080, 700);
@@ -159,8 +172,7 @@ namespace Monopoly.Interfaz
             this.Controls.Add(pnlDerechaConCasilla);
         }
 
-
-        public void ActualizarJugador(int id, string nombre, int saldo, int casilla, bool activo) //llamado por Red/Cliente al recibir JUGADOR|id|nombre|saldo|casilla|activo
+        public void ActualizarJugador(int id, string nombre, int saldo, int casilla, bool activo) //llamado al recibir JUGADOR|id|nombre|saldo|casilla|activo
         {
             if (this.InvokeRequired) //el hilo de red no puede tocar controles directamente (regla 14.1)
             {
@@ -179,9 +191,9 @@ namespace Monopoly.Interfaz
             lienzo.Invalidate(); //fuerza a que Lienzo_Paint se ejecute de nuevo
         }
 
-        public void ActualizarCasilla(string nombre, string propiedad, int precioCompra, int precioAlquiler)
+        public void ActualizarCasilla(string nombre, string propiedad, int precioCompra, int precioAlquiler) //llamado al recibir CASILLA|nombre|dueño|precio|alquiler
         {
-            if (InvokeRequired)
+            if (InvokeRequired) //viene del hilo de red: se pasa al hilo de la ventana
             {
                 Invoke(new Action(() => ActualizarCasilla(nombre, propiedad, precioCompra, precioAlquiler)));
                 return;
@@ -193,14 +205,14 @@ namespace Monopoly.Interfaz
             lblCasillaAlquiler.Text = "Precio Alquiler: $" + precioAlquiler;
         }
 
-        private void BtnComprar_Click(object? sender, EventArgs e)
+        private void BtnComprar_Click(object? sender, EventArgs e) //avisa afuera; la ventana no conoce la red
         {
-            //enviar comando al servidor
+            AlComprar?.Invoke();
         }
 
-        private void BtnPasar_Click(object? sender, EventArgs e)
+        private void BtnPasar_Click(object? sender, EventArgs e) //avisa afuera; la ventana no conoce la red
         {
-            //enviar comando al servidor
+            AlPasar?.Invoke();
         }
 
         private void Lienzo_Paint(object? sender, PaintEventArgs e) //dibuja las fichas sobre la imagen
@@ -211,13 +223,25 @@ namespace Monopoly.Interfaz
                 if (activos[i] && nombres[i] != null) //solo dibuja jugadores ya anunciados y activos
                 {
                     Point p = coordenadas[casillas[i]];
-                    int offsetX = (i % 2) * 12;
-                    int offsetY = (i / 2) * 12;
+                    int offsetX = (i % 2) * DesfaseFicha; //cuadricula 2x2 para que no se encimen
+                    int offsetY = (i / 2) * DesfaseFicha;
 
-                    e.Graphics.DrawImage(imagenesJugador[i], p.X + offsetX, p.Y + offsetY, 64, 64);
+                    e.Graphics.DrawImage(imagenesJugador[i], p.X + offsetX, p.Y + offsetY, TamanoFicha, TamanoFicha);
                 }
                 i++;
             }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e) //libera las imagenes para no dejar los archivos bloqueados
+        {
+            int i = 0;
+            while (i < 4)
+            {
+                if (imagenesJugador[i] != null) imagenesJugador[i].Dispose();
+                i++;
+            }
+            fondoTablero.Dispose();
+            base.OnFormClosed(e);
         }
     }
 }

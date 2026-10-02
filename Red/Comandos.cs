@@ -26,5 +26,6 @@ namespace Monopoly.Red
         public const string Transaccion = "TRANSACCION"; //TRANSACCION|linea, una por transaccion al consultar el historial
         public const string Fin = "FIN"; //FIN|nombreGanador
         public const string EstadoJugador = "JUGADOR"; //JUGADOR|id|nombre|saldo|casilla|activo(1/0), uno por jugador tras cada accion
+        public const string Casilla = "CASILLA"; //CASILLA|nombre|dueño|precio|alquiler, casilla donde quedo el jugador en turno
     }
 }
