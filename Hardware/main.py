@@ -9,16 +9,16 @@ from mfrc522 import MFRC522
 DEBUG = False  # True imprime mensajes que pueden confundir al servidor
 
 
-def log(msg):
+def log(msg): #Se activa si debug esta activo
     if DEBUG:
         print("LOG:" + msg)
 
 
-DISPLAY1_PINS = {
+DISPLAY1_PINS = {  
     'a': Pin(28, Pin.OUT),
     'b': Pin(27, Pin.OUT),
     'c': Pin(2, Pin.OUT),
-    'd': Pin(3, Pin.OUT),
+    'd': Pin(3, Pin.OUT),  
     'e': Pin(8, Pin.OUT),
     'f': Pin(9, Pin.OUT),
     'g': Pin(10, Pin.OUT),
@@ -43,7 +43,6 @@ led = Pin(21, Pin.OUT)      # GP21 - LED
 
 rfid = MFRC522(sck=6, mosi=7, miso=4, rst=22, cs=5, spi_id=0)
 
-UMBRAL_OSCURIDAD = 20000
 TIMEOUT_READID_MS = 10000
 INTERVALO_RFID_MS = 100
 ESPERA_ENTRE_LANZAMIENTOS_MS = 500
@@ -64,7 +63,7 @@ SEGMENTOS = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
 
 
 def mostrar_numero(numero, display_pins):
-    if numero < 0 or numero > 6:
+    if numero < 0 or numero > 6: #Si el numero es menor a 0 o mayor a 6 se pone en 0
         numero = 0
     patron = PATRONES[numero]
     for i, seg in enumerate(SEGMENTOS):
@@ -85,7 +84,7 @@ def lanzar_dados():
 
 
 
-def intentar_leer_uid():
+def intentar_leer_uid(): #Busca una tarjeta y devuelve su UID, si no hay devuelve None  
     """Un solo intento de lectura. Devuelve el UID en hex o None."""
     rfid.init()
     (estado, _tipo) = rfid.request(rfid.REQIDL)
@@ -100,12 +99,12 @@ def intentar_leer_uid():
 
 
 
-poller = select.poll()
+poller = select.poll()  #Bucle de eventos para leer stdin sin bloquear
 poller.register(sys.stdin, select.POLLIN)
 buffer_rx = ""
 
 
-def leer_comando():
+def leer_comando(): #Funcion que lee un comando de la entrada estándar y devuelve una línea completa si ya llegó o None.
     """Devuelve una linea completa si ya llego, o None. Nunca bloquea."""
     global buffer_rx
     while poller.poll(0):
@@ -121,7 +120,7 @@ def leer_comando():
 
 
 
-def procesar_comando(cmd, estado):
+def procesar_comando(cmd, estado): #Procesa un comando recibido por stdin y actualiza el estado del sistema.
     if cmd == "PING":
         print("DADOS:LISTO")
     elif cmd == "APAGAR":
@@ -164,7 +163,7 @@ def main():
     while True:
         ahora = time.ticks_ms()
 
-        # ---- 1) Boton de dados ----
+        # 1) Boton de dados 
         if BOTON.value() == 0:
             if (not boton_presionado
                     and time.ticks_diff(ahora, boton_bloqueado_hasta) >= 0):
@@ -190,7 +189,7 @@ def main():
         if cmd:
             procesar_comando(cmd, estado)
 
-        if estado["readid"]:
+        if estado["readid"]: #Verica el tiempo de espera y si ya pasó el intervalo para leer el RFID
             ahora = time.ticks_ms()
             if time.ticks_diff(ahora, estado["readid_inicio"]) >= TIMEOUT_READID_MS:
                 estado["readid"] = False

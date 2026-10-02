@@ -90,8 +90,9 @@ namespace Monopoly.Red
                     linea = lector.ReadLine();
                 }
             }
-            catch (Exception) //conexion cortada de golpe
+            catch (Exception ex) //conexion cortada de golpe; se muestra la causa para depurar
             {
+                Console.WriteLine("[Cliente] Error en la conexion: " + ex.Message);
             }
 
             conectado = false;
