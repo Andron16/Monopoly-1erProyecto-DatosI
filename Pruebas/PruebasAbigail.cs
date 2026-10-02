@@ -1,49 +1,80 @@
 //abigail
 
 using System;
-using Monopoly.Dominio;
+using System.Windows.Forms;
+using Monopoly.Interfaz;
+using Monopoly.Estructuras;
 
 namespace Monopoly.Pruebas
 {
-    public class PruebasAbigail //banco de pruebas de Abigail
+    public class PruebasAbigail //banco de pruebas del tablero y la interfaz de esta integrante
     {
-        private const string Puerto = "COM9"; //cambiar segun el COM que Windows le asigne a la Pico
-
-        public static void Ejecutar() //corre todas las pruebas de esta integrante
+        public static void Ejecutar() //pruebas que NO esperan nada del usuario; la prueba visual vive aparte
         {
-            Console.WriteLine("=== Dado ===");
-            PruebaModoSoftware();
-            PruebaModoHardware();
+            ProbarColaCircular();
         }
 
-        private static void PruebaModoSoftware() //cinco lanzamientos sin hardware
+        private static void ProbarColaCircular() //verifica cola vacia, un elemento, Avanzar y los 4 casos de Eliminar
         {
-            Console.WriteLine("--- Modo software ---");
-            Dado dado = new Dado(usarHardware: false);
-            Console.WriteLine("Es modo fisico: " + dado.EsModoFisico()); //se espera False
+            Console.WriteLine("=== ColaCircular ===");
 
-            for (int i = 1; i <= 5; i++) //cinco lanzamientos seguidos
+            ColaCircular<string> cola = new ColaCircular<string>();
+            Console.WriteLine("Vacia al inicio: " + cola.EstaVacia()); //se espera True
+            Console.WriteLine("Cantidad inicial: " + cola.Contar()); //se espera 0
+
+            cola.Encolar("J1");
+            Console.WriteLine("Un elemento - Frente: " + cola.Frente() + ", Cantidad: " + cola.Contar()); //se espera J1, 1
+
+            cola.Avanzar(); //con un solo elemento, avanzar no debe cambiar nada
+            Console.WriteLine("Avanzar con un solo elemento - Frente sigue siendo: " + cola.Frente()); //se espera J1
+
+            cola.Encolar("J2");
+            cola.Encolar("J3");
+            cola.Encolar("J4");
+            Console.WriteLine("Cantidad tras encolar 4: " + cola.Contar()); //se espera 4
+
+            Console.Write("Avanzar 4 veces, vuelve al primero: ");
+            int i = 0;
+            while (i < 4) //un giro completo del circulo
             {
-                dado.Lanzar();
-                Console.WriteLine("  Lanzamiento " + i + ": " + dado.Obtener1() + " + " + dado.Obtener2() + " = " + dado.ObtenerTotal()); //cada dado entre 1 y 6, total entre 2 y 12
+                Console.Write(cola.Frente() + " ");
+                cola.Avanzar();
+                i++;
             }
+            Console.WriteLine(); //se espera J1 J2 J3 J4
+            Console.WriteLine("Frente tras el giro completo: " + cola.Frente()); //se espera J1, volvio al inicio
+
+            Console.WriteLine("Eliminar J1 (frente): " + cola.Eliminar("J1")); //se espera True
+            Console.WriteLine("Frente ahora: " + cola.Frente() + ", Cantidad: " + cola.Contar()); //se espera J2, 3
+
+            Console.WriteLine("Eliminar J3 (medio): " + cola.Eliminar("J3")); //se espera True
+            Console.WriteLine("Cantidad: " + cola.Contar()); //se espera 2
+
+            Console.WriteLine("Eliminar J4 (ultimo): " + cola.Eliminar("J4")); //se espera True
+            Console.WriteLine("Frente: " + cola.Frente() + ", Cantidad: " + cola.Contar()); //se espera J2, 1
+
+            Console.WriteLine("Eliminar J2 (el unico): " + cola.Eliminar("J2")); //se espera True
+            Console.WriteLine("Vacia al final: " + cola.EstaVacia()); //se espera True
+
+            Console.WriteLine("Eliminar en cola vacia: " + cola.Eliminar("J5")); //se espera False, no debe tronar
         }
 
-        private static void PruebaModoHardware() //un lanzamiento real con el boton de la Pico
+        public static void ProbarTableroVisual() //abre la ventana; va en su propio rol porque bloquea
         {
-            Console.WriteLine("--- Modo hardware ---");
-            Dado dado = new Dado(usarHardware: true, puertoSerial: Puerto);
+            Console.WriteLine("=== VistaTablero ===");
 
-            if (!dado.EsModoFisico()) //sin Pico conectada no hay nada que probar
-            {
-                Console.WriteLine("  Hardware no disponible, se omite la prueba.");
-                return;
-            }
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
 
-            Console.WriteLine("  Presiona el boton de la Pico (hay 15 segundos)...");
-            dado.Lanzar();
-            Console.WriteLine("  Resultado: " + dado.Obtener1() + " + " + dado.Obtener2() + " = " + dado.ObtenerTotal()); //debe coincidir con los displays
-            dado.Desconectar();
+            VistaTablero vista = new VistaTablero(); //ya no recibe Jugador[]; el cliente real tampoco los tiene
+
+            //simula los mensajes JUGADOR|id|nombre|saldo|casilla|activo que mandaria el servidor
+            vista.ActualizarJugador(1, "Ana", 1500, 0, true);
+            vista.ActualizarJugador(2, "Beto", 1500, 9, true);
+            vista.ActualizarJugador(3, "Carla", 1500, 16, true);
+            vista.ActualizarJugador(4, "Dani", 1500, 31, true);
+
+            Application.Run(vista); //bloquea hasta que se cierre la ventana
         }
     }
 }

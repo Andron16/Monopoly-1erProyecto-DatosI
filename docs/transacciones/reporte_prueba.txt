@@ -1,10 +1,10 @@
 REPORTE DE TRANSACCIONES - MONOPOLY
-Generado: 28/09/2026 22:18:56
+Generado: 01/10/2026 13:55:56
 Total de transacciones: 3
 Orden: de la mas antigua a la mas reciente
 
 #     Turno  Hora      Tipo                Origen      Destino        Monto  Descripcion
 ----------------------------------------------------------------------------------------------------
-1     1      22:18:56  PremioPorInicio     BANCO       Ana              200  Premio por pasar por la salida
-2     1      22:18:56  CompraPropiedad     Ana         BANCO            300  Compra de Biblioteca
-3     2      22:18:56  PagoAlquiler        Beto        Ana               50  Alquiler de Biblioteca
+1     1      13:55:56  PremioPorInicio     BANCO       Ana              200  Premio por pasar por la salida
+2     1      13:55:56  CompraPropiedad     Ana         BANCO            300  Compra de Biblioteca
+3     2      13:55:56  PagoAlquiler        Beto        Ana               50  Alquiler de Biblioteca

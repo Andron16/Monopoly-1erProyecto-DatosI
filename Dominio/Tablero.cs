@@ -13,7 +13,7 @@ namespace Monopoly.Dominio
             casillas = new ListaCircularDoble<Casilla>();
         }
 
-        public void Construir() //crea y enlaza las 24 casillas de la partida
+        public void Construir() //crea y enlaza las 32 casillas de la partida
         {
             // ---- Lado Cartago ----
             AgregarCasilla(new CasillaEspecial(0, "SalidaCartago", TipoEspecial.Salida, 200)); //Cantidad
@@ -32,7 +32,7 @@ namespace Monopoly.Dominio
             AgregarCasilla(new Propiedad(11, "Isla", 120, 25));
             AgregarCasilla(new CasillaEvento(12, "Evento"));
             AgregarCasilla(new Propiedad(13, "Golfito", 120, 25));
-            AgregarCasilla(new Propiedad(14, "Faro", 140, 30)); ;
+            AgregarCasilla(new Propiedad(14, "Faro", 140, 30)); 
             AgregarCasilla(new Propiedad(15, "Caldera", 140, 30));
 
             // ---- Lado Puntarenas ----
@@ -42,22 +42,23 @@ namespace Monopoly.Dominio
             AgregarCasilla(new Propiedad(19, "Desampa", 160, 35));
             AgregarCasilla(new Propiedad(20, "Mercado Central", 180, 40));
             AgregarCasilla(new CasillaEvento(21, "Evento"));
-            AgregarCasilla(new Propiedad(21, "Mall", 180, 40));
-            AgregarCasilla(new Propiedad(22, "Cali", 200, 45));
+            AgregarCasilla(new Propiedad(22, "Mall", 180, 40));
+            AgregarCasilla(new Propiedad(23, "Cali", 200, 45));
 
             // ---- LADO Chepe ----
-            AgregarCasilla(new CasillaEspecial(22, "Chepe", TipoEspecial.Provincia, 0));
-            AgregarCasilla(new Propiedad(24, "Estadio", 200, 45));
-            AgregarCasilla(new Propiedad(25, "Sabana", 220, 50));
-            AgregarCasilla(new Propiedad(26, "Casa", 220, 50));
-            AgregarCasilla(new Propiedad(27, "Sanatorio", 240, 55));
-            AgregarCasilla(new CasillaEspecial(28, "Regalo", TipoEspecial.Regalo, 100));
-            AgregarCasilla(new CasillaEvento(29, "Evento"));
-            AgregarCasilla(new Propiedad(30, "Cerro", 240, 55));
+            AgregarCasilla(new CasillaEspecial(24, "Chepe", TipoEspecial.Provincia, 0));
+            AgregarCasilla(new Propiedad(25, "Estadio", 200, 45));
+            AgregarCasilla(new Propiedad(26, "Sabana", 220, 50));
+            AgregarCasilla(new Propiedad(27, "Casa", 220, 50));
+            AgregarCasilla(new Propiedad(28, "Sanatorio", 240, 55));
+            AgregarCasilla(new CasillaEspecial(29, "Regalo", TipoEspecial.Regalo, 100));
+            AgregarCasilla(new CasillaEvento(30, "Evento"));
+            AgregarCasilla(new Propiedad(31, "Cerro", 240, 55));
         }
 
         public void AgregarCasilla(Casilla casilla)
         {
+            casilla.Id = casillas.Contar(); //la posicion en el circuito define el numero: 0, 1, 2...
             casillas.Agregar(casilla);
         } //añade una casilla al final del circuito
 

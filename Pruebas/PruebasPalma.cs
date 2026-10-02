@@ -13,6 +13,7 @@ namespace Monopoly.Pruebas
             ProbarListaSimple();
             ProbarJugador();
             ProbarPropiedad();
+            ProbarColaCartas();
         }
 
         private static void ProbarListaSimple() //verifica agregado, busqueda, obtencion y eliminacion
@@ -86,11 +87,30 @@ namespace Monopoly.Pruebas
             Jugador dueno = new Jugador(1, "Palma", 25000);
             Jugador otro = new Jugador(2, "Andron", 25000);
 
-            prop.Propietario = dueno; //se le asigna un dueño
+            prop.Propietario = dueno; //se le asigna un dueno
 
-            Console.WriteLine("Disponible con dueño: " + prop.EstaDisponible()); //se espera False
-            Console.WriteLine("EsDe dueño: " + prop.EsDe(dueno)); //se espera True
+            Console.WriteLine("Disponible con dueno: " + prop.EstaDisponible()); //se espera False
+            Console.WriteLine("EsDe dueno: " + prop.EsDe(dueno)); //se espera True
             Console.WriteLine("EsDe otro: " + prop.EsDe(otro));   //se espera False
+        }
+
+        private static void ProbarColaCartas() //verifica encolar, sacar (recicla al final) y que la cantidad se mantiene
+        {
+            Console.WriteLine("=== ColaCartas ===");
+
+            ColaCartas<string> mazo = new ColaCartas<string>();
+            Console.WriteLine("Vacia al inicio: " + mazo.EstaVacia()); //se espera True
+
+            mazo.Encolar("A");
+            mazo.Encolar("B");
+            mazo.Encolar("C");
+            Console.WriteLine("Cantidad tras encolar 3: " + mazo.Contar()); //se espera 3
+
+            Console.WriteLine("Sacar 1: " + mazo.Sacar()); //se espera A
+            Console.WriteLine("Sacar 2: " + mazo.Sacar()); //se espera B
+            Console.WriteLine("Sacar 3: " + mazo.Sacar()); //se espera C
+            Console.WriteLine("Sacar 4: " + mazo.Sacar()); //se espera A (la primera volvio al final)
+            Console.WriteLine("Cantidad final: " + mazo.Contar()); //se espera 3 (no se descarta ninguna)
         }
     }
 }
