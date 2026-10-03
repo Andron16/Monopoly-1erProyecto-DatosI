@@ -55,11 +55,11 @@ namespace Monopoly.Interfaz
             coordenadas[0] = new Point(87, 1514); //Salida
             coordenadas[1] = new Point(267, 1514);
             coordenadas[2] = new Point(440, 1514);
-            coordenadas[3] = new Point(662, 1519);
+            coordenadas[3] = new Point(615, 1519); //corregida: mismo espaciado (~175 px) que el resto del lado
             coordenadas[4] = new Point(800, 1519);
             coordenadas[5] = new Point(975, 1519);
-            coordenadas[6] = new Point(1160, 1519);
-            coordenadas[7] = new Point(1325, 1519);
+            coordenadas[6] = new Point(1150, 1519); //corregida: alineada con la casilla 10 y 18
+            coordenadas[7] = new Point(1330, 1519); //corregida: alineada con la casilla 17
             //Alajuela
             coordenadas[8] = new Point(1519, 1519);
             coordenadas[9] = new Point(1514, 1342);
@@ -162,7 +162,7 @@ namespace Monopoly.Interfaz
             //columna derecha: jugadores arriba (Top) y casilla abajo (Fill)
             Panel pnlDerechaConCasilla = new Panel();
             pnlDerechaConCasilla.Dock = DockStyle.Right;
-            pnlDerechaConCasilla.Width = 200;
+            pnlDerechaConCasilla.Width = 200; //ancho suficiente para Comprar y Pasar sin cortarse
             pnlDerechaConCasilla.Controls.Add(pnlCasilla);
             pnlDerechaConCasilla.Controls.Add(panelJugadores);
 
