@@ -7,7 +7,7 @@ namespace Monopoly.Dominio
 {
     public class Juego //estado completo y oficial de la partida; vive solo en el servidor
     {
-        public const int SaldoInicial = 800; //dinero con el que arranca cada jugador (ajustado para que haya quiebras en la partida)
+        public const int SaldoInicial = 400; //dinero con el que arranca cada jugador (ajustado para que haya quiebras en la partida)
         public const int PremioSalida = 100; //lo que paga el banco al pasar por la salida
         public const int MaxJugadores = 4; //la partida es de exactamente 4
 

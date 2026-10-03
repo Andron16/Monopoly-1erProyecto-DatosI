@@ -7,7 +7,7 @@ namespace Monopoly
     class Program //punto de entrada unico; despacha segun el rol recibido
     {
         private const int PuertoTcp = 5000; //puerto de red donde escucha el servidor
-        private const int LimiteTurnos = 100; //turnos individuales antes de terminar por patrimonio
+        private const int LimiteTurnos = 32; //turnos individuales antes de terminar por patrimonio
 
         [STAThread] //requerido por Windows Forms para abrir la ventana del cliente
         static void Main(string[] args) //decide que rol ejecutar

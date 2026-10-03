@@ -1,13 +1,32 @@
 REPORTE DE TRANSACCIONES - MONOPOLY
-Generado: 02/10/2026 00:52:02
-Total de transacciones: 6
+Generado: 02/10/2026 22:53:36
+Total de transacciones: 25
 Orden: de la mas antigua a la mas reciente
 
 #     Turno  Hora      Tipo                Origen      Destino        Monto  Descripcion
 ----------------------------------------------------------------------------------------------------
-1     1      00:45:38  CompraPropiedad     Ana         BANCO             80  Compra de Zapote
-2     4      00:48:55  CompraPropiedad     Dani        BANCO            100  Compra de Jaco
-3     5      00:49:48  CompraPropiedad     Ana         BANCO            160  Compra de La Carpio
-4     6      00:50:27  PagoAlquiler        Carla       Dani              20  Alquiler de Jaco
-5     7      00:51:14  CompraPropiedad     Dani        BANCO            140  Compra de Faro
-6     8      00:51:51  CompraPropiedad     Ana         BANCO            180  Compra de Mercado Central
+1     1      22:42:06  PagoAlBanco         Andron      BANCO             50  Fianza de la carcel
+2     2      22:42:46  GananciaPorEvento   BANCO       Palma            100  Ganaste un concurso de cafe
+3     3      22:43:32  PagoAlBanco         Cele        BANCO             50  Fianza de la carcel
+4     5      22:44:16  GananciaPorEvento   BANCO       Palma            300  Loteria
+5     6      22:44:48  CompraPropiedad     Abi         BANCO            100  Compra de Jaco
+6     9      22:45:48  PerdidaPorEvento    Cele        BANCO             50  Multa de transito
+7     10     22:46:12  CompraPropiedad     Abi         BANCO            140  Compra de Faro
+8     12     22:46:56  CompraPropiedad     Palma       BANCO            240  Compra de Cerro
+9     13     22:47:09  GananciaPorEvento   BANCO       Cele             300  Loteria
+10    14     22:47:36  CompraPropiedad     Abi         BANCO            160  Compra de Desampa
+11    15     22:47:49  PremioPorInicio     BANCO       Andron           100  Premio por pasar por la salida
+12    15     22:47:49  GananciaPorEvento   BANCO       Andron            75  Casilla Dinero
+13    16     22:48:01  PremioPorInicio     BANCO       Palma            100  Premio por pasar por la salida
+14    16     22:48:14  PagoAlBanco         Palma       BANCO             50  Fianza de la carcel
+15    17     22:48:39  CompraPropiedad     Cele        BANCO            240  Compra de Sanatorio
+16    19     22:49:42  PagoAlBanco         Andron      BANCO             50  Fianza de la carcel
+17    20     22:49:52  PremioPorInicio     BANCO       Cele             100  Premio por pasar por la salida
+18    21     22:50:06  PremioPorInicio     BANCO       Abi              100  Premio por pasar por la salida
+19    22     22:50:28  PagoAlquiler        Palma       Abi              175  Alquiler de Desampa
+20    23     22:50:51  PagoAlBanco         Cele        BANCO             50  Fianza de la carcel
+21    25     22:51:23  CompraPropiedad     Andron      BANCO            120  Compra de Isla
+22    26     22:51:52  CompraPropiedad     Palma       BANCO            220  Compra de Sabana
+23    27     22:52:16  CompraPropiedad     Abi         BANCO            140  Compra de Caldera
+24    29     22:52:41  PremioPorInicio     BANCO       Palma            100  Premio por pasar por la salida
+25    32     22:53:32  PagoAlquiler        Andron      Cele             275  Alquiler de Sanatorio
