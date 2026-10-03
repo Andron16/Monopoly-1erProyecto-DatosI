@@ -1,17 +1,19 @@
 //andron
 
+using System;
 using Monopoly.Estructuras;
 
 namespace Monopoly.Dominio
 {
     public class Juego //estado completo y oficial de la partida; vive solo en el servidor
     {
-        public const int SaldoInicial = 1500; //dinero con el que arranca cada jugador
-        public const int PremioSalida = 200; //lo que paga el banco al pasar por la salida
+        public const int SaldoInicial = 800; //dinero con el que arranca cada jugador (ajustado para que haya quiebras en la partida)
+        public const int PremioSalida = 100; //lo que paga el banco al pasar por la salida
         public const int MaxJugadores = 4; //la partida es de exactamente 4
 
         private Jugador[] jugadores = new Jugador[MaxJugadores]; //todos los inscritos, incluso eliminados; la cola solo tiene a los activos
         private int cantidadJugadores = 0; //cuantos se han inscrito
+        private Random azar = new Random(); //elige a quien recibe el regalo de la casilla Regalo
         public bool Iniciado { get; private set; } //true despues de llamar a Iniciar()
         public Tablero Tablero { get; private set; } //casillas enlazadas del tablero
         public ColaCircular<Jugador> Turnos { get; private set; } //rotacion de turnos de los jugadores
@@ -74,6 +76,24 @@ namespace Monopoly.Dominio
         }
 
         public int CantidadJugadores() { return cantidadJugadores; } //inscritos, activos o no
+
+        public Jugador? OtroJugadorAlAzar(Jugador excluido) //un jugador activo distinto al indicado; null si no queda ninguno
+        {
+            Jugador[] candidatos = new Jugador[MaxJugadores]; //arreglo nativo T[], permitido
+            int cantidad = 0;
+            int i = 0;
+            while (i < cantidadJugadores) //junta a los activos que no son el excluido
+            {
+                if (jugadores[i].Activo && jugadores[i] != excluido)
+                {
+                    candidatos[cantidad] = jugadores[i];
+                    cantidad++;
+                }
+                i++;
+            }
+            if (cantidad == 0) return null;
+            return candidatos[azar.Next(cantidad)]; //Next(n) da un indice de 0 a n-1
+        }
 
         private void CrearMazo() //llena el mazo con las cartas de evento; salen en este orden y se reciclan
         {

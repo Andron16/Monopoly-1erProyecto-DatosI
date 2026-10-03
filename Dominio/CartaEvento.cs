@@ -46,11 +46,10 @@ namespace Monopoly.Dominio
                     }
                     break;
 
-                case TipoEfecto.Retroceder: //retroceder k equivale a avanzar (total - k) en un tablero circular
+                case TipoEfecto.Retroceder: //mueve la ficha hacia atras Valor pasos usando los enlaces Anterior
                     if (jugador.Posicion != null)
                     {
-                        int pasosAtras = juego.Tablero.Contar() - Valor; //la vuelta larga cae en la misma casilla
-                        jugador.Posicion = juego.Tablero.Mover(jugador.Posicion, pasosAtras);
+                        jugador.Posicion = juego.Tablero.Retroceder(jugador.Posicion, Valor);
                     }
                     break;
 
