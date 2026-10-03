@@ -31,31 +31,47 @@ namespace Monopoly.Red
             this.juego = juego; //la partida la crea Program y el servidor la administra
         }
 
-        public void Iniciar() //abre el puerto y acepta conexiones hasta completar los 4 jugadores
+        public void Iniciar() //abre el puerto y acepta conexiones; cada una ocupa el primer espacio libre
         {
             escucha = new TcpListener(IPAddress.Any, puerto); //Any: acepta conexiones desde otras computadoras
             escucha.Start();
-            Console.WriteLine("[Servidor] Escuchando en el puerto " + puerto);
+            Console.WriteLine("[Servidor] Escuchando en el puerto " + puerto + " (Ctrl + C para cerrar)");
 
-            int aceptados = 0;
-            while (aceptados < MaxJugadores) //se queda esperando a cada jugador
+            while (true) //sigue aceptando: una conexion que se va sin presentarse deja su espacio libre
             {
                 TcpClient socket = escucha.AcceptTcpClient();
-                ConexionCliente conexion = new ConexionCliente(aceptados + 1, socket); //ids de 1 a 4
+                ConexionCliente? conexion = null;
                 lock (candado)
                 {
-                    conexiones[aceptados] = conexion;
+                    int libre = BuscarEspacioLibre();
+                    if (libre >= 0) //hay lugar: el numero de jugador es el espacio + 1
+                    {
+                        conexion = new ConexionCliente(libre + 1, socket);
+                        conexiones[libre] = conexion;
+                    }
                 }
-                aceptados++;
+                if (conexion == null) //los 4 lugares ya tienen jugador: se rechaza
+                {
+                    socket.Close();
+                    Console.WriteLine("[Servidor] Conexion rechazada: no hay lugar");
+                    continue;
+                }
 
-                Thread hilo = new Thread(() => AtenderCliente(conexion)); //un hilo por jugador
+                ConexionCliente nueva = conexion; //copia no nula para el hilo
+                Thread hilo = new Thread(() => AtenderCliente(nueva)); //un hilo por jugador
                 hilo.IsBackground = true;
                 hilo.Start();
-                Console.WriteLine("[Servidor] Conexion aceptada: jugador " + conexion.Id);
+                Console.WriteLine("[Servidor] Conexion aceptada: jugador " + nueva.Id);
             }
+        }
 
-            Console.WriteLine("[Servidor] Cupo completo. Presione Enter para cerrar el servidor.");
-            Console.ReadLine(); //mantiene vivo el proceso mientras los hilos atienden
+        private int BuscarEspacioLibre() //primer espacio sin conexion y sin jugador inscrito; -1 si no hay; se llama dentro del candado
+        {
+            for (int i = 0; i < MaxJugadores; i++)
+            {
+                if (conexiones[i] == null && juego.ObtenerJugador(i + 1) == null) return i;
+            }
+            return -1;
         }
 
         private void AtenderCliente(ConexionCliente conexion) //lee los mensajes de un jugador hasta que se desconecte
@@ -80,7 +96,10 @@ namespace Monopoly.Red
             lock (candado)
             {
                 conexiones[conexion.Id - 1] = null; //libera su espacio
-                Difundir(Protocolo.Armar(Comandos.Mensaje, "Se desconecto el jugador " + conexion.Id));
+                if (conexion.Nombre != "") //solo se avisa si era un jugador inscrito, no una conexion de prueba
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, "Se desconecto " + conexion.Nombre));
+                }
             }
             conexion.Cerrar();
         }
@@ -249,18 +268,18 @@ namespace Monopoly.Red
             return Protocolo.Armar(Comandos.Casilla, casilla.Nombre, duenio, propiedad.Precio.ToString(), propiedad.Alquiler.ToString());
         }
 
-        private void DifundirEstado() //manda el estado de los 4 jugadores a todos
+        private void DifundirEstado() //manda el estado de los jugadores inscritos a todos
         {
-            for (int id = 1; id <= juego.CantidadJugadores(); id++)
+            for (int id = 1; id <= MaxJugadores; id++) //recorre los 4 numeros posibles; los vacios se saltan
             {
                 Jugador? j = juego.ObtenerJugador(id);
                 if (j != null) Difundir(LineaJugador(j));
             }
         }
 
-        private void EnviarEstado(ConexionCliente conexion) //manda el estado de los 4 jugadores solo a quien lo pidio
+        private void EnviarEstado(ConexionCliente conexion) //manda el estado de los jugadores inscritos solo a quien lo pidio
         {
-            for (int id = 1; id <= juego.CantidadJugadores(); id++)
+            for (int id = 1; id <= MaxJugadores; id++) //recorre los 4 numeros posibles; los vacios se saltan
             {
                 Jugador? j = juego.ObtenerJugador(id);
                 if (j != null) Enviar(conexion, LineaJugador(j));
