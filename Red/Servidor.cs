@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using Monopoly.Dominio;
 using Monopoly.Estructuras;
+using Monopoly.Hardware;
 using Monopoly.Reportes;
 
 namespace Monopoly.Red
@@ -13,6 +14,7 @@ namespace Monopoly.Red
     public class Servidor //acepta hasta 4 jugadores por TCP y atiende a cada uno en su propio hilo
     {
         public const int MaxJugadores = 4; //la partida es de exactamente 4 jugadores
+        private const int IntentosTarjeta = 2; //veces que se pide el llavero antes de rendirse
 
         private int puerto; //puerto TCP donde escucha
         private TcpListener? escucha; //socket servidor que acepta conexiones
@@ -29,6 +31,7 @@ namespace Monopoly.Red
             conectados = 0;
             candado = new object();
             this.juego = juego; //la partida la crea Program y el servidor la administra
+            juego.Banco.ConfirmarPago = PedirTarjeta; //antes de cada pago, el banco pide el llavero a traves del servidor
         }
 
         public void Iniciar() //abre el puerto y acepta conexiones; cada una ocupa el primer espacio libre
@@ -118,10 +121,12 @@ namespace Monopoly.Red
                 }
                 conexion.Nombre = partes[1].Trim(); //quita espacios sobrantes al inicio y al final
                 conectados++;
-                juego.AgregarJugador(new Jugador(conexion.Id, conexion.Nombre, Juego.SaldoInicial)); //el id de la conexion es el id del jugador
+                Jugador nuevo = new Jugador(conexion.Id, conexion.Nombre, Juego.SaldoInicial); //el id de la conexion es el id del jugador
+                juego.AgregarJugador(nuevo);
                 Enviar(conexion, Protocolo.Armar(Comandos.Bienvenido, conexion.Id.ToString()));
                 Difundir(Protocolo.Armar(Comandos.Mensaje, conexion.Nombre + " se unio (" + conectados + "/" + MaxJugadores + ")"));
                 DifundirEstado(); //todos reciben JUGADOR|... de los que ya entraron; el lobby se llena de a uno
+                RegistrarLlavero(nuevo); //con la Pico conectada, asocia su llavero antes de seguir
 
                 if (conectados == MaxJugadores) //ya estan los 4: arranca la partida
                 {
@@ -242,6 +247,77 @@ namespace Monopoly.Red
             DifundirEstado();
             if (juego.Terminado) AnunciarFin();
             else if (juego.NumeroTurno != turnoAntes) AnunciarTurno(); //termino su turno o quebro
+        }
+
+        private LectorRfid? Lector() //lector RFID de la Pico; null si el servidor arranco sin hardware
+        {
+            ModuloFisico? modulo = juego.Dado.ObtenerModulo();
+            if (modulo == null || !modulo.EstaConectado()) return null;
+            return modulo.Lector;
+        }
+
+        private void RegistrarLlavero(Jugador jugador) //al conectarse, le asocia un llavero al jugador; se llama dentro del candado
+        {
+            LectorRfid? lector = Lector();
+            if (lector == null) return; //sin hardware: todos juegan sin tarjeta
+
+            int intento = 1;
+            while (intento <= IntentosTarjeta) //da dos oportunidades de acercar el llavero
+            {
+                Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + ": acerca tu llavero al lector para registrarlo"));
+                string? uid = lector.EsperarTarjeta(); //espera hasta 10 s
+                Jugador? duenio = uid == null ? null : DuenioDeLlavero(uid);
+                if (uid == null)
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, "No se detecto ningun llavero"));
+                }
+                else if (duenio != null) //validacion: un llavero no puede ser de dos jugadores
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, "Ese llavero ya es de " + duenio.Nombre));
+                }
+                else
+                {
+                    jugador.IdRfid = uid; //la tarjeta solo identifica; el saldo sigue en el servidor
+                    Console.WriteLine("[Servidor] Llavero " + uid + " -> " + jugador.Nombre);
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + " registro su llavero"));
+                    return;
+                }
+                intento++;
+            }
+            Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + " juega sin llavero")); //sus pagos no pediran tarjeta
+        }
+
+        private Jugador? DuenioDeLlavero(string uid) //jugador que ya registro ese UID; null si esta libre
+        {
+            for (int id = 1; id <= MaxJugadores; id++)
+            {
+                Jugador? j = juego.ObtenerJugador(id);
+                if (j != null && j.IdRfid == uid) return j;
+            }
+            return null;
+        }
+
+        private bool PedirTarjeta(Jugador jugador, int monto, string descripcion) //el Banco la llama antes de cobrar; true si el llavero correcto confirmo el pago
+        {
+            LectorRfid? lector = Lector();
+            if (lector == null || jugador.IdRfid == "") return true; //sin lector o jugador sin llavero: se paga sin tarjeta
+
+            DifundirEstado(); //las fichas muestran donde cayo antes de pedir la tarjeta
+            int intento = 1;
+            while (intento <= IntentosTarjeta) //da dos oportunidades de acercar el llavero correcto
+            {
+                Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + ": acerca tu llavero para pagar " + monto + " (" + descripcion + ")"));
+                string? uid = lector.EsperarTarjeta(); //espera hasta 10 s
+                if (uid == jugador.IdRfid) //el servidor identifico al jugador por su tarjeta
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, "Pago de " + jugador.Nombre + " confirmado con su llavero"));
+                    return true;
+                }
+                Difundir(Protocolo.Armar(Comandos.Mensaje, uid == null ? "No se detecto ningun llavero" : "Ese llavero no es de " + jugador.Nombre));
+                intento++;
+            }
+            Difundir(Protocolo.Armar(Comandos.Mensaje, "No se confirmo el pago de " + jugador.Nombre + " con llavero"));
+            return false; //el Banco decide: la compra se cancela y los pagos obligatorios se cobran igual
         }
 
         private void DifundirTransaccionesNuevas(int desde) //avisa las transacciones que genero la ultima accion

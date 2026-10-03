@@ -1,5 +1,6 @@
 //andron
 
+using System;
 using Monopoly.Estructuras;
 
 namespace Monopoly.Dominio
@@ -10,6 +11,8 @@ namespace Monopoly.Dominio
         private int siguienteId; //consecutivo para numerar las transacciones
 
         public const string NombreBanco = "BANCO"; //etiqueta usada como origen o destino
+
+        public Func<Jugador, int, string, bool>? ConfirmarPago { get; set; } //lo asigna el servidor para pedir la tarjeta RFID; null = pagos sin tarjeta
 
         public Banco(ListaDoble<Transaccion> historial) //recibe el historial compartido de la partida
         {
@@ -25,6 +28,7 @@ namespace Monopoly.Dominio
                 return false;
             }
 
+            TarjetaConfirmada(jugador, monto, descripcion); //pago obligatorio: se pide la tarjeta, pero se cobra aunque no se confirme
             jugador.AjustarSaldo(-monto); //monto negativo: resta del saldo
             Registrar(tipo, jugador.Nombre, NombreBanco, monto, turno, descripcion); //el banco es el destino del dinero
             return true;
@@ -44,6 +48,7 @@ namespace Monopoly.Dominio
                 return false;
             }
 
+            TarjetaConfirmada(origen, monto, descripcion); //pago obligatorio: se pide la tarjeta al que paga, pero se cobra aunque no se confirme
             origen.AjustarSaldo(-monto); //le resta al que paga
             destino.AjustarSaldo(monto); //le suma al que cobra
             Registrar(tipo, origen.Nombre, destino.Nombre, monto, turno, descripcion);
@@ -53,6 +58,10 @@ namespace Monopoly.Dominio
         public bool ComprarPropiedad(Jugador jugador, Propiedad propiedad, int turno) //compra voluntaria: si no alcanza, no pasa nada
         {
             if (!propiedad.EstaDisponible() || !jugador.PuedePagar(propiedad.Precio)) //ya tiene dueño o no le alcanza
+            {
+                return false;
+            }
+            if (!TarjetaConfirmada(jugador, propiedad.Precio, "Compra de " + propiedad.Nombre)) //compra voluntaria: sin la tarjeta correcta no se compra
             {
                 return false;
             }
@@ -88,6 +97,12 @@ namespace Monopoly.Dominio
             {
                 jugador.Propiedades.Obtener(i).Propietario = null; //vuelve a estar disponible para comprar
             }
+        }
+
+        private bool TarjetaConfirmada(Jugador jugador, int monto, string descripcion) //pide la tarjeta si el servidor lo configuro; true si no hay verificacion
+        {
+            if (ConfirmarPago == null) return true; //pruebas o servidor sin hardware: se paga sin tarjeta
+            return ConfirmarPago(jugador, monto, descripcion);
         }
 
         private void Registrar(TipoTransaccion tipo, string origen, string destino, int monto, int turno, string descripcion) //crea la transaccion y la archiva en el historial
