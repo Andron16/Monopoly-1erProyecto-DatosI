@@ -7,7 +7,7 @@ namespace Monopoly.Pruebas
 {
     public class PruebasHardware //banco de pruebas de la Pico: dados y lector RFID por el mismo puerto
     {
-        private const string PuertoPico = "COM4"; //cambiar segun el COM de la PC
+        private const string PuertoPico = "COM10"; //cambiar segun el COM de la PC
 
         public static void Ejecutar() //abre la Pico y deja probar el boton y el lector a la vez
         {

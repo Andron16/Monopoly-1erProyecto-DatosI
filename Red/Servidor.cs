@@ -111,12 +111,12 @@ namespace Monopoly.Red
 
             if (comando == Comandos.Conectar) //registra el nombre y confirma el numero de jugador
             {
-                if (partes.Length < 2 || conexion.Nombre != "") //falta el nombre o ya se habia conectado
+                if (partes.Length < 2 || partes[1].Trim() == "" || conexion.Nombre != "") //falta el nombre, viene vacio o ya se habia conectado
                 {
                     Enviar(conexion, Protocolo.Armar(Comandos.Error, "CONECTAR invalido"));
                     return;
                 }
-                conexion.Nombre = partes[1];
+                conexion.Nombre = partes[1].Trim(); //quita espacios sobrantes al inicio y al final
                 conectados++;
                 juego.AgregarJugador(new Jugador(conexion.Id, conexion.Nombre, Juego.SaldoInicial)); //el id de la conexion es el id del jugador
                 Enviar(conexion, Protocolo.Armar(Comandos.Bienvenido, conexion.Id.ToString()));
@@ -172,6 +172,10 @@ namespace Monopoly.Red
             if (comando == Comandos.TirarDados)
             {
                 CartaEvento? cartaAntes = juego.Mazo.UltimaSacada; //para saber si en esta tirada salio una carta nueva
+                if (juego.Dado.EsModoFisico() && !jugador.YaTiroDados) //con la Pico: avisa antes de esperar el boton fisico
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + ": presiona el boton del dado (15 s)")); //llega al registro de todos antes de la espera
+                }
                 if (!juego.TirarDados(id)) //validacion: lanzar dos veces
                 {
                     Enviar(conexion, Protocolo.Armar(Comandos.Error, "Ya tiro los dados en este turno"));
@@ -211,6 +215,12 @@ namespace Monopoly.Red
             }
             else if (comando == Comandos.NoComprar)
             {
+                Propiedad? libre = jugador.Posicion!.Dato as Propiedad; //null si la casilla no es una propiedad
+                if (!jugador.YaTiroDados || libre == null || !libre.EstaDisponible()) //validacion: solo se puede rechazar una compra que se ofrecio
+                {
+                    Enviar(conexion, Protocolo.Armar(Comandos.Error, "No hay compra pendiente"));
+                    return;
+                }
                 Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + " no compro"));
             }
             else if (comando == Comandos.TerminarTurno)
