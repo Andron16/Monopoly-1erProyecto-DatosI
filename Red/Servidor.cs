@@ -152,6 +152,7 @@ namespace Monopoly.Red
 
             if (comando == Comandos.TirarDados)
             {
+                CartaEvento? cartaAntes = juego.Mazo.UltimaSacada; //para saber si en esta tirada salio una carta nueva
                 if (!juego.TirarDados(id)) //validacion: lanzar dos veces
                 {
                     Enviar(conexion, Protocolo.Armar(Comandos.Error, "Ya tiro los dados en este turno"));
@@ -159,6 +160,11 @@ namespace Monopoly.Red
                 }
                 Casilla casilla = jugador.Posicion!.Dato;
                 Difundir(Protocolo.Armar(Comandos.Dados, id.ToString(), juego.Dado.Obtener1().ToString(), juego.Dado.Obtener2().ToString()));
+                CartaEvento? cartaNueva = juego.Mazo.UltimaSacada; //ultima carta del mazo despues de tirar
+                if (cartaNueva != null && cartaNueva != cartaAntes) //cayo en un Evento y salio una carta: se anuncia a todos
+                {
+                    Difundir(Protocolo.Armar(Comandos.Mensaje, jugador.Nombre + " saco una carta: " + cartaNueva.Descripcion));
+                }
                 Difundir(Protocolo.Armar(Comandos.Movimiento, id.ToString(), casilla.Id.ToString(), casilla.Nombre));
                 Difundir(LineaCasilla(casilla)); //datos de la casilla para el panel de la interfaz
 

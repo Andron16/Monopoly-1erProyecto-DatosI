@@ -8,12 +8,14 @@ namespace Monopoly.Estructuras
         private Nodo<T>? frente; //primera carta del mazo
         private Nodo<T>? final; //ultima carta del mazo
         private int cantidad; //numero de cartas en el mazo
+        public T? UltimaSacada { get; private set; } //ultima carta devuelta por Sacar; default si todavia no salio ninguna
 
         public ColaCartas() //inicializa el mazo vacio
         {
             frente = null;
             final = null;
             cantidad = 0;
+            UltimaSacada = default;
         }
 
         public void Encolar(T carta) //agrega una carta al final del mazo
@@ -39,6 +41,7 @@ namespace Monopoly.Estructuras
             Nodo<T> tomada = frente; //la carta que se va a usar
             if (frente == final) //una sola carta: sigue siendo frente y final, no hay que mover nada
             {
+                UltimaSacada = tomada.Dato; //recuerda la carta para quien quiera anunciarla
                 return tomada.Dato;
             }
 
@@ -46,6 +49,7 @@ namespace Monopoly.Estructuras
             tomada.Siguiente = null;   //la tomada se desengancha del inicio
             final!.Siguiente = tomada; //se agrega al final del mazo
             final = tomada;            //y pasa a ser el nuevo final
+            UltimaSacada = tomada.Dato; //recuerda la carta para quien quiera anunciarla
             return tomada.Dato;        //devuelve la carta usada
         }
 
